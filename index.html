@@ -69,20 +69,16 @@
   .step-n{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--lamp);
     letter-spacing:.14em;display:block;margin-bottom:8px}
   .hint{color:var(--muted);font-size:12.5px;margin:8px 0 0}
-  .err{color:var(--alarm);font-size:13px;margin:12px 0 0}
+  .err{color:var(--alarm);font-size:13px;margin:12px 0 0;white-space:pre-wrap}
   .ticket{border:1px dashed var(--lamp);border-radius:var(--r);padding:22px 18px;text-align:center;
     background:linear-gradient(180deg, rgba(255,183,74,.06), transparent)}
   .ticket .code{font-family:"Unbounded",sans-serif;font-weight:600;font-size:clamp(30px,9vw,44px);
     letter-spacing:.14em;color:var(--lamp);margin:6px 0 4px;user-select:all}
   .ticket .cap{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;
     text-transform:uppercase;color:var(--muted)}
-  /* диагностика */
   .diag{margin-top:16px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;
     font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--muted);line-height:1.9}
-  .diag b{color:var(--text);font-weight:500}
-  .diag .ok{color:var(--live)}
-  .diag .no{color:var(--alarm)}
-  .diag .wt{color:var(--lamp)}
+  .diag .ok{color:var(--live)} .diag .no{color:var(--alarm)} .diag .wt{color:var(--lamp)}
   .hall{display:grid;grid-template-columns:1fr 330px;gap:16px;align-items:start}
   @media(max-width:960px){.hall{grid-template-columns:1fr;gap:12px}}
   .screen{position:relative;background:#000;border:1px solid var(--line);
@@ -123,7 +119,7 @@
 <div class="wrap">
   <header>
     <h1>Киноаппаратная</h1>
-    <span class="sub">сеанс на двоих</span>
+    <span class="sub">сеанс на двоих · сборка 4</span>
     <span class="lamp" id="lamp" data-s="off"><span class="bulb"></span><span id="lampText">лампа погашена</span></span>
   </header>
 
@@ -178,7 +174,7 @@
         <div class="ticket">
           <div class="cap">код зала</div>
           <div class="code" id="roomCode">···</div>
-          <div class="cap" id="waitText">ждём второго зрителя</div>
+          <div class="cap" id="waitText">готовим зал</div>
         </div>
         <div class="row" style="margin-top:12px"><button id="copyCode">Скопировать код</button></div>
       </div>
@@ -247,7 +243,7 @@
     <details id="turnBlock">
       <summary>Ретранслятор TURN — когда прямая связь не проходит</summary>
       <div class="body">
-        <p class="hint" style="margin:0">Через TURN пойдёт весь фильм целиком, а не только рукопожатие. Бесплатных гигабайт на двухчасовое кино не хватит — нужен свой coturn на VPS или платный тариф.</p>
+        <p class="hint" style="margin:0">Через TURN пойдёт весь фильм целиком, а не только рукопожатие. Нужен свой coturn на VPS или платный тариф — бесплатных гигабайт на кино не хватит.</p>
         <div><label for="turnUrl">Адрес</label><input type="text" id="turnUrl" placeholder="turn:example.com:3478" autocomplete="off"></div>
         <div class="row">
           <div class="grow"><label for="turnUser">Логин</label><input type="text" id="turnUser" autocomplete="off"></div>
@@ -296,12 +292,19 @@ const enc = new TextEncoder(), dec = new TextDecoder();
 let role=null, pc=null, dc=null, screenStream=null, micTrack=null, micTx=null, videoTx=null;
 let remote=new MediaStream(), statTimer=null, broker=null, topic=null, roomKey=null;
 let useBroker=false, wakeLock=null, pubTimer=null, deadline=null;
-const myCands = [], seenRemote = new Set(), pending = [];
-const localTypes = new Set(), remoteTypes = new Set();
+const myCands=[], seenRemote=new Set(), pending=[];
+const localTypes=new Set(), remoteTypes=new Set();
 const IS_TOUCH = matchMedia("(pointer: coarse)").matches;
 const BROKERS = ["wss://broker.emqx.io:8084/mqtt","wss://test.mosquitto.org:8081/mqtt"];
-const STUN = ["stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302",
-              "stun:stun.cloudflare.com:3478","stun:stun.nextcloud.com:443"];
+const STUN = ["stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302","stun:stun.cloudflare.com:3478"];
+
+/* никакая ошибка больше не пропадает молча */
+const lamp = (s,t) => { $("lamp").dataset.s = s; $("lampText").textContent = t; };
+const fail = t => { $("err").textContent = t || ""; if (t) $("retryRow").classList.remove("hidden"); };
+const boom = (where, e) => { console.error(where, e);
+  fail("Сбой на шаге «" + where + "»: " + (e && (e.message || e.name) || e) + "\nПокажите эту строку — по ней видно причину."); };
+window.addEventListener("error", e => boom("общая ошибка", e.error || e.message));
+window.addEventListener("unhandledrejection", e => boom("асинхронная ошибка", e.reason));
 
 /* ---------- код зала ---------- */
 const ALPHA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -352,12 +355,8 @@ async function readCode(raw, expect){
   return obj;
 }
 
-/* ---------- интерфейс ---------- */
-const lamp = (s,t) => { $("lamp").dataset.s = s; $("lampText").textContent = t; };
-const fail = t => { $("err").textContent = t; if (t) $("retryRow").classList.remove("hidden"); };
-function sys(t){ const e=document.createElement("div"); e.className="msg sys"; e.textContent=t;
-  $("log").appendChild(e); $("log").scrollTop=$("log").scrollHeight; }
-const typeLabel = s => [...s].map(t => ({host:"локальный", srflx:"внешний", prflx:"внешний", relay:"через TURN"}[t] || t)).join(", ") || "нет";
+/* ---------- диагностика ---------- */
+const typeLabel = s => [...s].map(t => ({host:"локальный",srflx:"внешний",prflx:"внешний",relay:"через TURN"}[t]||t)).join(", ") || "нет";
 function paintDiag(){
   $("dLocal").textContent  = localTypes.size  ? typeLabel(localTypes)  : "собираются";
   $("dRemote").textContent = remoteTypes.size ? typeLabel(remoteTypes) : "ждём";
@@ -371,11 +370,14 @@ function iceConfig(){
   const servers = [{urls:STUN}];
   const u = $("turnUrl").value.trim();
   if (u) servers.push({urls:u, username:$("turnUser").value, credential:$("turnPass").value});
-  return {iceServers:servers, bundlePolicy:"max-bundle", iceCandidatePoolSize:4};
+  return {iceServers:servers, bundlePolicy:"max-bundle"};
 }
-const boostOpus = sdp => sdp.replace(/^a=fmtp:(\d+) ((?=.*minptime=)(?!.*stereo=).*)$/gm,
-  (_,pt,rest) => `a=fmtp:${pt} ${rest};stereo=1;sprop-stereo=1;maxaveragebitrate=256000`);
-
+/* создаём новый объект, а не правим готовый: sdp в RTCSessionDescription только для чтения */
+const withStereo = desc => ({
+  type: desc.type,
+  sdp: desc.sdp.replace(/^a=fmtp:(\d+) ((?=.*minptime=)(?!.*stereo=).*)$/gm,
+    (_,pt,rest) => `a=fmtp:${pt} ${rest};stereo=1;sprop-stereo=1;maxaveragebitrate=256000`)
+});
 function waitIce(p){
   return new Promise(res => {
     if (p.iceGatheringState === "complete") return res();
@@ -389,7 +391,8 @@ function publishCands(){
   if (!useBroker || !broker) return;
   clearTimeout(pubTimer);
   pubTimer = setTimeout(async () => {
-    try{ broker.publish(topic + (role === "host" ? "/oc" : "/ac"), await seal(myCands), {retain:true, qos:1}); }catch{}
+    try{ broker.publish(topic + (role==="host" ? "/oc" : "/ac"), await seal(myCands), {retain:true, qos:1}); }
+    catch(e){ console.warn("cand publish", e); }
   }, 250);
 }
 async function takeCands(list){
@@ -398,20 +401,19 @@ async function takeCands(list){
     if (!k || seenRemote.has(k)) continue;
     seenRemote.add(k);
     const m = /typ (\w+)/.exec(k); if (m) remoteTypes.add(m[1]);
-    if (pc && pc.remoteDescription) { try{ await pc.addIceCandidate(c); }catch{} }
+    if (pc && pc.remoteDescription){ try{ await pc.addIceCandidate(c); }catch(e){ console.warn("addIce", e); } }
     else pending.push(c);
   }
   paintDiag();
 }
-async function flushPending(){
-  while (pending.length){ try{ await pc.addIceCandidate(pending.shift()); }catch{} }
-}
+async function flushPending(){ while (pending.length){ try{ await pc.addIceCandidate(pending.shift()); }catch{} } }
+
 function newPeer(){
   const p = new RTCPeerConnection(iceConfig());
   p.onicecandidate = e => {
     if (!e.candidate) return;
     const m = /typ (\w+)/.exec(e.candidate.candidate);
-    if (m) { localTypes.add(m[1]); paintDiag(); }
+    if (m){ localTypes.add(m[1]); paintDiag(); }
     myCands.push(e.candidate.toJSON());
     publishCands();
   };
@@ -421,8 +423,8 @@ function newPeer(){
   };
   p.oniceconnectionstatechange = () => {
     const s = p.iceConnectionState;
-    $("dState").textContent = {new:"готовимся", checking:"перебираем пути", connected:"есть канал",
-      completed:"есть канал", failed:"путь не найден", disconnected:"канал потерян", closed:"закрыт"}[s] || s;
+    $("dState").textContent = {new:"готовимся",checking:"перебираем пути",connected:"есть канал",
+      completed:"есть канал",failed:"путь не найден",disconnected:"канал потерян",closed:"закрыт"}[s] || s;
     $("dState").className = (s==="connected"||s==="completed") ? "ok" : (s==="failed" ? "no" : "wt");
   };
   p.onconnectionstatechange = () => {
@@ -440,18 +442,18 @@ async function showPair(){
     stats.forEach(r => { if (r.type==="candidate-pair" && r.state==="succeeded" && r.nominated) pair=r; });
     if (!pair) return;
     stats.forEach(r => { if (r.id===pair.localCandidateId) loc=r; if (r.id===pair.remoteCandidateId) rem=r; });
-    const n = t => ({host:"локальная сеть", srflx:"через интернет", prflx:"через интернет", relay:"через TURN"}[t]||t);
-    $("dPair").textContent = `${n(loc?.candidateType)} → ${n(rem?.candidateType)}`;
+    const n = t => ({host:"локальная сеть",srflx:"через интернет",prflx:"через интернет",relay:"через TURN"}[t]||t);
+    $("dPair").textContent = `${n(loc&&loc.candidateType)} → ${n(rem&&rem.candidateType)}`;
     $("dPairWrap").classList.remove("hidden");
   }catch{}
 }
 function diagnose(){
-  const noSrflx = !localTypes.has("srflx") && !localTypes.has("relay");
-  const remoteNoSrflx = !remoteTypes.has("srflx") && !remoteTypes.has("relay");
-  if (!remoteTypes.size) fail("От второго устройства не пришло ни одного пути — похоже, оно так и не дошло до этого шага. Пусть обновит страницу и войдёт заново.");
-  else if (noSrflx) fail("Ваша сеть не пропускает STUN — браузер не смог узнать свой внешний адрес. Обычно это корпоративный или ограниченный Wi-Fi: попробуйте другую сеть.");
-  else if (remoteNoSrflx) fail("Сеть второго устройства не пропускает STUN. Пусть попробует переключиться с Wi-Fi на мобильный интернет или наоборот.");
-  else fail("Внешние адреса нашлись у обоих, но канал не открылся — это симметричный NAT, чаще всего у мобильного оператора. Помогает: переключить телефон с мобильного интернета на Wi-Fi, или наоборот, или поднять TURN.");
+  const meBlind = !localTypes.has("srflx") && !localTypes.has("relay");
+  const themBlind = !remoteTypes.has("srflx") && !remoteTypes.has("relay");
+  if (!remoteTypes.size) fail("От второго устройства не пришло ни одного пути — оно не дошло до этого шага. Пусть обновит страницу и войдёт заново.");
+  else if (meBlind) fail("Ваша сеть не пропускает STUN — браузер не смог узнать свой внешний адрес. Попробуйте другую сеть.");
+  else if (themBlind) fail("Сеть второго устройства не пропускает STUN. Пусть переключится с Wi-Fi на мобильный интернет или наоборот.");
+  else fail("Внешние адреса есть у обоих, но канал не открылся — это симметричный NAT, обычно у мобильного оператора. Помогает смена сети на любой из сторон или свой TURN.");
 }
 function armDeadline(){
   clearTimeout(deadline);
@@ -465,13 +467,17 @@ async function tuneVideo(){
   p.encodings[0].maxBitrate = parseInt($("quality").value,10) * 1000000;
   p.encodings[0].maxFramerate = $("viewer").value === "pc" ? 60 : 30;
   p.degradationPreference = "maintain-resolution";
-  try{ await s.setParameters(p); }catch{}
+  try{ await s.setParameters(p); }catch(e){ console.warn("bitrate", e); }
 }
 function preferH264(){
-  if (!videoTx?.setCodecPreferences || !window.RTCRtpSender?.getCapabilities) return;
-  const caps = RTCRtpSender.getCapabilities("video"); if (!caps) return;
-  const h = caps.codecs.filter(c => /H264/i.test(c.mimeType)); if (!h.length) return;
-  try{ videoTx.setCodecPreferences([...h, ...caps.codecs.filter(c => !/H264/i.test(c.mimeType))]); }catch{}
+  try{
+    if (!videoTx || !videoTx.setCodecPreferences) return;
+    const caps = window.RTCRtpSender && RTCRtpSender.getCapabilities && RTCRtpSender.getCapabilities("video");
+    if (!caps || !caps.codecs) return;
+    const h = caps.codecs.filter(c => /H264/i.test(c.mimeType));
+    if (!h.length) return;
+    videoTx.setCodecPreferences([...h, ...caps.codecs.filter(c => !/H264/i.test(c.mimeType))]);
+  }catch(e){ console.warn("h264", e); }
 }
 function bindChannel(ch){
   dc = ch;
@@ -512,10 +518,10 @@ $("viewer").onchange = () => {
 /* ---------- брокер ---------- */
 function connectBroker(){
   return new Promise((resolve, reject) => {
-    if (typeof mqtt === "undefined") return reject(new Error("no-lib"));
+    if (typeof mqtt === "undefined") return reject(new Error("библиотека посредника не загрузилась"));
     let i = 0;
     const tryOne = () => {
-      if (i >= BROKERS.length) return reject(new Error("no-broker"));
+      if (i >= BROKERS.length) return reject(new Error("ни один посредник не ответил"));
       const c = mqtt.connect(BROKERS[i++], {connectTimeout:7000, reconnectPeriod:0, clean:true});
       c.on("connect", () => resolve(c));
       c.on("error", () => { try{ c.end(true); }catch{} tryOne(); });
@@ -532,43 +538,57 @@ function clearRetained(){
 /* ---------- хост ---------- */
 $("startShare").onclick = async () => {
   fail("");
+  let stream;
   try{
-    screenStream = await navigator.mediaDevices.getDisplayMedia({
+    stream = await navigator.mediaDevices.getDisplayMedia({
       video:{ frameRate:{ideal:60}, width:{ideal:1920}, height:{ideal:1080} },
       audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false, sampleRate:48000 }
     });
-  }catch{ fail("Доступ к экрану не дан. По http:// или из файла на телефоне браузер это запрещает — нужен https."); return; }
+  }catch(e){
+    if (e && e.name === "NotAllowedError") fail("Доступ к экрану не дан.");
+    else boom("захват экрана", e);
+    return;
+  }
 
-  const v = screenStream.getVideoTracks()[0], a = screenStream.getAudioTracks()[0];
-  v.contentHint = "motion";
-  if (a) a.contentHint = "music";
-  else fail("Звук вкладки не захвачен — нужна была галочка «Открыть доступ к аудио вкладки». Перевыберите вкладку.");
-  v.onended = () => { sys("Трансляция остановлена."); lamp("dead","проектор выключен"); };
-
-  pc = newPeer();
-  bindChannel(pc.createDataChannel("chat", {ordered:true}));
-  videoTx = pc.addTransceiver(v, {direction:"sendonly", streams:[screenStream]});
-  if ($("viewer").value !== "pc") preferH264();
-  if (a) pc.addTransceiver(a, {direction:"sendonly", streams:[screenStream]});
-  else pc.addTransceiver("audio", {direction:"sendonly"});
-  micTx = pc.addTransceiver("audio", {direction:"sendrecv"});
-
-  await tuneVideo();
-  const offer = await pc.createOffer();
-  offer.sdp = boostOpus(offer.sdp);
-  await pc.setLocalDescription(offer);
-
+  /* интерфейс переключаем сразу, чтобы состояние было видно даже при сбое ниже */
+  screenStream = stream;
   $("startShare").disabled = true;
   $("startShare").textContent = "Вкладка выбрана";
-  $("video").srcObject = screenStream; $("video").muted = true;
+  $("ticketStep").classList.remove("hidden");
   $("diag").classList.remove("hidden");
-  lamp("wait","ждём зрителя");
+  $("video").srcObject = stream; $("video").muted = true;
+  lamp("wait","готовим зал");
 
-  waitIce(pc).then(async () => { $("outCode").value = await pack(pc.localDescription); });
+  const v = stream.getVideoTracks()[0], a = stream.getAudioTracks()[0];
+  try{
+    v.contentHint = "motion";
+    if (a) a.contentHint = "music";
+    v.onended = () => { sys("Трансляция остановлена."); lamp("dead","проектор выключен"); };
+
+    pc = newPeer();
+    bindChannel(pc.createDataChannel("chat", {ordered:true}));
+    videoTx = pc.addTransceiver(v, {direction:"sendonly", streams:[stream]});
+    if ($("viewer").value !== "pc") preferH264();
+    if (a) pc.addTransceiver(a, {direction:"sendonly", streams:[stream]});
+    else pc.addTransceiver("audio", {direction:"sendonly"});
+    micTx = pc.addTransceiver("audio", {direction:"sendrecv"});
+    await tuneVideo();
+
+    const raw = await pc.createOffer();
+    let desc;
+    try{ desc = withStereo(raw); }catch{ desc = raw; }
+    try{ await pc.setLocalDescription(desc); }
+    catch{ await pc.setLocalDescription(raw); }   /* если правка SDP не понравилась — идём без неё */
+  }catch(e){ boom("подготовка соединения", e); return; }
+
+  waitIce(pc).then(async () => { try{ $("outCode").value = await pack(pc.localDescription); }catch{} });
+  if (!a) fail("Звук вкладки не захвачен — нужна была галочка «Открыть доступ к аудио вкладки». Нажмите «Начать заново» и перевыберите вкладку.");
 
   const code = newCode();
   $("roomCode").textContent = code;
-  $("ticketStep").classList.remove("hidden");
+  $("waitText").textContent = "ждём второго зрителя";
+  lamp("wait","ждём зрителя");
+
   try{
     roomKey = await keyFor(normCode(code));
     topic = "kinozal/" + await roomFor(normCode(code));
@@ -586,14 +606,14 @@ $("startShare").onclick = async () => {
         } else if (t.endsWith("/ac")){
           await takeCands(await unseal(payload));
         }
-      }catch{}
+      }catch(e){ console.warn("broker msg", e); }
     });
     broker.publish(topic+"/o", await seal(pc.localDescription), {retain:true, qos:1});
     publishCands();
-  }catch{
+  }catch(e){
     $("dBroker").textContent = "недоступен"; $("dBroker").className = "no";
     $("waitText").textContent = "посредник недоступен";
-    fail("Не удалось выйти на посредника — сеть его блокирует. Откройте ручной режим ниже, он работает без него.");
+    fail("Посредник недоступен (" + (e.message || e) + "). Откройте ручной режим ниже — он работает без него.");
     $("manualBlock").open = true;
   }
 };
@@ -612,10 +632,10 @@ $("joinBtn").onclick = async () => {
     broker = await connectBroker();
     useBroker = true;
     $("dBroker").textContent = "на связи"; $("dBroker").className = "ok";
-  }catch{
+  }catch(e){
     $("joinBtn").disabled = false; lamp("dead","посредник недоступен");
     $("dBroker").textContent = "недоступен"; $("dBroker").className = "no";
-    fail("Не удалось выйти на посредника — сеть его блокирует. Откройте ручной режим ниже.");
+    fail("Посредник недоступен (" + (e.message || e) + "). Откройте ручной режим ниже.");
     $("manualBlock").open = true; return;
   }
   const timer = setTimeout(() => {
@@ -631,10 +651,11 @@ $("joinBtn").onclick = async () => {
     clearTimeout(timer);
     let offer;
     try{ offer = await unseal(payload); }
-    catch{ fail("Код не подошёл — зал зашифрован другим кодом."); $("joinBtn").disabled=false; return; }
-    await answerTo(offer, async ans => broker.publish(topic+"/a", ans, {qos:1}), true);
-    publishCands();
-    armDeadline();
+    catch{ fail("Код не подошёл — зал зашифрован другим кодом."); $("joinBtn").disabled = false; return; }
+    try{
+      await answerTo(offer, async ans => broker.publish(topic+"/a", ans, {qos:1}), true);
+      publishCands(); armDeadline();
+    }catch(e){ boom("вход в зал", e); }
   });
 };
 
@@ -644,10 +665,10 @@ async function answerTo(offer, send, sealed){
   await pc.setRemoteDescription(new RTCSessionDescription(offer));
   await flushPending();
   micTx = pc.getTransceivers().find(t => t.mid === "2") || pc.getTransceivers()[2];
-  if (micTx) micTx.direction = "sendrecv";
-  const answer = await pc.createAnswer();
-  answer.sdp = boostOpus(answer.sdp);
-  await pc.setLocalDescription(answer);
+  if (micTx) { try{ micTx.direction = "sendrecv"; }catch{} }
+  const raw = await pc.createAnswer();
+  let desc; try{ desc = withStereo(raw); }catch{ desc = raw; }
+  try{ await pc.setLocalDescription(desc); }catch{ await pc.setLocalDescription(raw); }
   if (sealed) await send(await seal(pc.localDescription));
   else { await waitIce(pc); await send(await pack(pc.localDescription)); }
   lamp("wait","соединяемся");
@@ -659,7 +680,7 @@ $("connectHost").onclick = async () => {
   try{
     await pc.setRemoteDescription(new RTCSessionDescription(await readCode($("inCode").value, "answer")));
     await flushPending(); await tuneVideo(); lamp("wait","соединяемся"); armDeadline();
-  }catch(e){ fail(e.message); }
+  }catch(e){ fail(e.message || String(e)); }
 };
 $("makeAnswer").onclick = async () => {
   fail("");
@@ -667,7 +688,7 @@ $("makeAnswer").onclick = async () => {
     const offer = await readCode($("gIn").value, "offer");
     await answerTo(offer, c => { $("gOut").value = c; $("gOutWrap").classList.remove("hidden"); }, false);
     $("makeAnswer").disabled = true; armDeadline();
-  }catch(e){ fail(e.message); }
+  }catch(e){ fail(e.message || String(e)); }
 };
 function saveText(t,n){ const u=URL.createObjectURL(new Blob([t],{type:"text/plain"}));
   const a=document.createElement("a"); a.href=u; a.download=n; a.click(); setTimeout(()=>URL.revokeObjectURL(u),3000); }
@@ -678,13 +699,13 @@ $("loadOfferBtn").onclick = () => $("loadOffer").click();
 $("loadIn").onchange    = async e => { const f=e.target.files[0]; if(f) $("inCode").value = await f.text(); };
 $("loadOffer").onchange = async e => { const f=e.target.files[0]; if(f) $("gIn").value = await f.text(); };
 function copyFrom(id){ const el=$(id), t = el.value !== undefined ? el.value : el.textContent;
-  navigator.clipboard.writeText(t).catch(()=>{ el.select?.(); document.execCommand("copy"); }); }
+  navigator.clipboard.writeText(t).catch(()=>{ if (el.select) { el.select(); document.execCommand("copy"); } }); }
 $("copyCode").onclick = () => copyFrom("roomCode");
 $("copyOut").onclick  = () => copyFrom("outCode");
 $("copyG").onclick    = () => copyFrom("gOut");
 
 /* ---------- зал ---------- */
-async function keepAwake(){ try{ wakeLock = await navigator.wakeLock?.request("screen"); }catch{} }
+async function keepAwake(){ try{ if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request("screen"); }catch{} }
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible" && !$("hall").classList.contains("hidden")) keepAwake();
 });
@@ -700,17 +721,18 @@ function enterHall(){
 $("unmute").onclick = () => { const v=$("video"); v.muted=false; v.play().finally(()=>$("soundGate").classList.add("hidden")); };
 $("micBtn").onclick = async () => {
   const on = $("micBtn").getAttribute("aria-pressed") === "true";
-  if (on){
-    micTrack?.stop(); micTrack = null; await micTx?.sender.replaceTrack(null);
-    $("micBtn").setAttribute("aria-pressed","false"); $("micBtn").textContent = "Микрофон выключен";
-  }else{
-    try{
+  try{
+    if (on){
+      if (micTrack){ micTrack.stop(); micTrack = null; }
+      if (micTx) await micTx.sender.replaceTrack(null);
+      $("micBtn").setAttribute("aria-pressed","false"); $("micBtn").textContent = "Микрофон выключен";
+    }else{
       const s = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
       micTrack = s.getAudioTracks()[0]; micTrack.contentHint = "speech";
-      await micTx?.sender.replaceTrack(micTrack);
+      if (micTx) await micTx.sender.replaceTrack(micTrack);
       $("micBtn").setAttribute("aria-pressed","true"); $("micBtn").textContent = "Микрофон включён";
-    }catch{ sys("Микрофон недоступен."); }
-  }
+    }
+  }catch{ sys("Микрофон недоступен."); }
 };
 $("fsBtn").onclick = () => {
   const el = role === "guest" ? $("video") : document.querySelector(".screen");
@@ -723,6 +745,8 @@ $("lightsBtn").onclick = () => { const on = document.body.classList.toggle("dark
 
 /* ---------- чат ---------- */
 const nick = () => ($("nick").value.trim() || (role === "host" ? "Проектор" : "Зритель")).slice(0,20);
+function sys(t){ const e=document.createElement("div"); e.className="msg sys"; e.textContent=t;
+  $("log").appendChild(e); $("log").scrollTop=$("log").scrollHeight; }
 function addMsg(who, text, mine){
   const el=document.createElement("div"); el.className="msg"+(mine?" mine":"");
   const w=document.createElement("span"); w.className="who"; w.textContent=who;
@@ -745,7 +769,7 @@ function startStats(){
     let bytes=0, ts=0, fps=0, res="";
     (await pc.getStats()).forEach(r => {
       if ((r.type==="outbound-rtp"||r.type==="inbound-rtp") && r.kind==="video"){
-        bytes = r.bytesSent ?? r.bytesReceived ?? 0; ts = r.timestamp;
+        bytes = r.bytesSent != null ? r.bytesSent : (r.bytesReceived || 0); ts = r.timestamp;
         fps = r.framesPerSecond || 0; res = r.frameWidth ? r.frameWidth+"×"+r.frameHeight : "";
       }
     });
@@ -757,7 +781,8 @@ function startStats(){
   }, 2000);
 }
 window.addEventListener("beforeunload", () => {
-  clearRetained(); pc?.close(); screenStream?.getTracks().forEach(t => t.stop());
+  clearRetained(); if (pc) pc.close();
+  if (screenStream) screenStream.getTracks().forEach(t => t.stop());
 });
 })();
 </script>
