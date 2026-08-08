@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B0D12">
+<title>Киноаппаратная — сеанс на двоих</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0B0D12; --panel:#141821; --panel-2:#1B2029; --line:#262C38;
+    --lamp:#FFB74A; --lamp-dim:rgba(255,183,74,.14);
+    --alarm:#E8574A; --live:#5BD08C; --text:#E6E9EF; --muted:#7C8496; --r:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--ink);color:var(--text);
+    font-family:"Golos Text",system-ui,sans-serif;font-size:15px;line-height:1.5;
+    -webkit-font-smoothing:antialiased;overflow-x:hidden}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:radial-gradient(1100px 620px at 50% -10%, var(--lamp-dim), transparent 62%);
+    transition:opacity .8s ease}
+  body.dark-room::before{opacity:.2}
+
+  .wrap{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:20px 16px 40px}
+  header{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+  h1{font-family:"Unbounded",sans-serif;font-weight:600;font-size:16px;
+    letter-spacing:.22em;text-transform:uppercase;margin:0}
+  .sub{color:var(--muted);font-size:13px}
+  .lamp{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);
+    margin-left:auto;font-family:"JetBrains Mono",monospace;letter-spacing:.05em}
+  .bulb{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+  .lamp[data-s="live"] .bulb{background:var(--live);box-shadow:0 0 12px var(--live)}
+  .lamp[data-s="wait"] .bulb{background:var(--lamp);box-shadow:0 0 12px var(--lamp);animation:pulse 1.4s infinite}
+  .lamp[data-s="dead"] .bulb{background:var(--alarm);box-shadow:0 0 10px var(--alarm)}
+  @keyframes pulse{50%{opacity:.25}}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+  .eyebrow{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--muted);margin:0 0 14px}
+
+  .roles{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:720px){.roles{grid-template-columns:1fr}}
+  .role{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+    padding:24px 20px;text-align:left;cursor:pointer;color:var(--text);font-family:inherit;
+    transition:border-color .18s, transform .18s, background .18s}
+  .role:hover{border-color:var(--lamp);transform:translateY(-2px);background:var(--panel-2)}
+  .role:focus-visible{outline:2px solid var(--lamp);outline-offset:3px}
+  .role h2{font-family:"Unbounded",sans-serif;font-size:15px;font-weight:600;margin:0 0 8px}
+  .role p{margin:0;color:var(--muted);font-size:13.5px}
+  .role .glyph{font-size:22px;display:block;margin-bottom:12px;color:var(--lamp)}
+
+  label{display:block;font-size:12.5px;color:var(--muted);margin:0 0 6px}
+  input[type=text],select,textarea{width:100%;background:var(--ink);border:1px solid var(--line);
+    color:var(--text);border-radius:10px;padding:11px 13px;font-family:inherit;font-size:16px}
+  textarea{font-family:"JetBrains Mono",monospace;font-size:11.5px;line-height:1.45;
+    resize:vertical;word-break:break-all}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--lamp)}
+
+  button{font-family:inherit;font-size:14px;font-weight:500;border-radius:10px;cursor:pointer;
+    border:1px solid var(--line);background:var(--panel-2);color:var(--text);padding:11px 18px;
+    transition:background .16s,border-color .16s}
+  button:hover:not(:disabled){border-color:var(--lamp)}
+  button:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  .primary{background:var(--lamp);color:#1A1204;border-color:var(--lamp);font-weight:600}
+  .primary:hover:not(:disabled){background:#FFC66B}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .grow{flex:1;min-width:170px}
+  .step{margin-bottom:18px}
+  .step:last-child{margin-bottom:0}
+  .step-n{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--lamp);
+    letter-spacing:.14em;display:block;margin-bottom:8px}
+  .hint{color:var(--muted);font-size:12.5px;margin:8px 0 0}
+  .err{color:var(--alarm);font-size:13px;margin:10px 0 0;min-height:1px}
+
+  /* код зала — единственная громкая деталь */
+  .ticket{border:1px dashed var(--lamp);border-radius:var(--r);padding:22px 18px;text-align:center;
+    background:linear-gradient(180deg, rgba(255,183,74,.06), transparent)}
+  .ticket .code{font-family:"Unbounded",sans-serif;font-weight:600;font-size:clamp(30px,9vw,44px);
+    letter-spacing:.14em;color:var(--lamp);margin:6px 0 4px;user-select:all}
+  .ticket .cap{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--muted)}
+
+  /* зал */
+  .hall{display:grid;grid-template-columns:1fr 330px;gap:16px;align-items:start}
+  @media(max-width:960px){.hall{grid-template-columns:1fr;gap:12px}}
+  .screen{position:relative;background:#000;border:1px solid var(--line);
+    border-radius:var(--r);overflow:hidden;aspect-ratio:16/9}
+  .screen video{width:100%;height:100%;object-fit:contain;display:block;background:#000}
+  .overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:14px;background:rgba(11,13,18,.88);text-align:center;padding:24px}
+  .overlay p{margin:0;color:var(--muted);font-size:13.5px;max-width:420px}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+  .toggle[aria-pressed="true"]{background:var(--lamp);color:#1A1204;border-color:var(--lamp)}
+  .stat{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:11px;
+    color:var(--muted);white-space:nowrap}
+
+  .chat{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+    display:flex;flex-direction:column;height:min(620px,62vh);min-height:300px}
+  @media(max-width:960px){.chat{height:46vh;min-height:220px}}
+  .chat-head{padding:12px 16px;border-bottom:1px solid var(--line)}
+  .log{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:11px}
+  .msg{font-size:14px;overflow-wrap:anywhere}
+  .msg .who{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--lamp);display:block;margin-bottom:2px}
+  .msg.mine .who{color:var(--muted)}
+  .msg.sys{color:var(--muted);font-size:12.5px;font-style:italic}
+  .chat-form{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
+  .chat-form input{flex:1}
+
+  details{border-top:1px solid var(--line);margin-top:18px;padding-top:14px}
+  summary{cursor:pointer;color:var(--muted);font-size:13px;list-style:none}
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:"+ ";color:var(--lamp)}
+  details[open] summary::before{content:"− "}
+  details .body{margin-top:14px;display:grid;gap:12px}
+  .note{border-left:2px solid var(--lamp);padding:2px 0 2px 12px;color:var(--muted);
+    font-size:13px;margin:16px 0 0}
+  .hidden{display:none !important}
+  @media(prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Киноаппаратная</h1>
+    <span class="sub">сеанс на двоих</span>
+    <span class="lamp" id="lamp" data-s="off"><span class="bulb"></span><span id="lampText">лампа погашена</span></span>
+  </header>
+
+  <!-- выбор роли -->
+  <section id="pick">
+    <div class="roles">
+      <button class="role" id="beHost">
+        <span class="glyph">▶</span>
+        <h2>Я включаю фильм</h2>
+        <p>Делитесь вкладкой со звуком. Получите код зала — продиктуете его второму зрителю.</p>
+      </button>
+      <button class="role" id="beGuest">
+        <span class="glyph">◉</span>
+        <h2>Я смотрю</h2>
+        <p>Вводите код зала — и всё. Работает и с телефона.</p>
+      </button>
+    </div>
+    <p class="note">Видео идёт напрямую между двумя устройствами. Через посредника проходит только зашифрованное рукопожатие — сам фильм там не появляется.</p>
+  </section>
+
+  <!-- настройка -->
+  <section id="setup" class="card hidden">
+    <p class="eyebrow" id="setupTitle">подготовка</p>
+
+    <div class="step">
+      <label for="nick">Как вас подписывать в чате</label>
+      <input type="text" id="nick" maxlength="20" placeholder="Имя" autocomplete="off">
+    </div>
+
+    <!-- хост -->
+    <div id="hostFlow" class="hidden">
+      <div class="step">
+        <label for="viewer">Второй зритель смотрит с</label>
+        <select id="viewer">
+          <option value="pc">компьютера или телевизора</option>
+          <option value="phone">телефона по Wi-Fi</option>
+          <option value="mobile">телефона по мобильному интернету</option>
+        </select>
+        <p class="hint" id="viewerHint">Дальше подберём кодек и битрейт под это.</p>
+      </div>
+
+      <div class="step">
+        <label for="quality">Качество потока</label>
+        <select id="quality">
+          <option value="3">3 Мбит/с — экономно</option>
+          <option value="8">8 Мбит/с — надёжно</option>
+          <option value="15" selected>15 Мбит/с — как Blu-ray</option>
+          <option value="25">25 Мбит/с — максимум</option>
+        </select>
+      </div>
+
+      <div class="step">
+        <span class="step-n">ШАГ 1</span>
+        <button class="primary" id="startShare">Выбрать вкладку с фильмом</button>
+        <p class="hint">В окне выбора переключитесь на <b>«Вкладка Chrome»</b>, выберите вкладку с фильмом и включите галочку <b>«Открыть доступ к аудио вкладки»</b> — иначе будет немое кино.</p>
+      </div>
+
+      <div class="step hidden" id="ticketStep">
+        <span class="step-n">ШАГ 2</span>
+        <div class="ticket">
+          <div class="cap">код зала</div>
+          <div class="code" id="roomCode">···</div>
+          <div class="cap" id="waitText">ждём второго зрителя</div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button id="copyCode">Скопировать код</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- гость -->
+    <div id="guestFlow" class="hidden">
+      <div class="step">
+        <label for="joinCode">Код зала</label>
+        <input type="text" id="joinCode" placeholder="XXX-XXX" autocomplete="off"
+               autocapitalize="characters" spellcheck="false"
+               style="font-family:'Unbounded',sans-serif;font-size:24px;letter-spacing:.12em;text-align:center">
+        <div class="row" style="margin-top:12px">
+          <button class="primary" id="joinBtn">Войти в зал</button>
+        </div>
+        <p class="hint">Если смотрите с телефона по мобильному интернету — учтите, что два часа фильма это несколько гигабайт трафика.</p>
+      </div>
+    </div>
+
+    <p class="err" id="err"></p>
+
+    <details id="manualBlock">
+      <summary>Ручной режим — если код зала не срабатывает</summary>
+      <div class="body">
+        <p class="hint" style="margin:0">Обмен длинными кодами напрямую, без посредника. Работает всегда, но код нужно передавать целиком — лучше файлом, мессенджеры режут длинные сообщения.</p>
+        <div id="manualHost" class="hidden">
+          <label for="outCode">Ваш код приглашения</label>
+          <textarea id="outCode" rows="3" readonly></textarea>
+          <div class="row" style="margin-top:8px">
+            <button id="copyOut">Скопировать</button>
+            <button id="saveOut">Сохранить файлом</button>
+          </div>
+          <label for="inCode" style="margin-top:14px">Ответный код от второго зрителя</label>
+          <textarea id="inCode" rows="3" placeholder="Вставьте сюда"></textarea>
+          <div class="row" style="margin-top:8px">
+            <button class="primary" id="connectHost">Открыть зал</button>
+            <input type="file" id="loadIn" accept=".txt" style="display:none">
+            <button id="loadInBtn">Загрузить из файла</button>
+          </div>
+        </div>
+        <div id="manualGuest" class="hidden">
+          <label for="gIn">Код приглашения</label>
+          <textarea id="gIn" rows="3" placeholder="Вставьте сюда"></textarea>
+          <div class="row" style="margin-top:8px">
+            <button class="primary" id="makeAnswer">Продолжить</button>
+            <input type="file" id="loadOffer" accept=".txt" style="display:none">
+            <button id="loadOfferBtn">Загрузить из файла</button>
+          </div>
+          <div id="gOutWrap" class="hidden" style="margin-top:14px">
+            <label for="gOut">Ответный код — отправьте обратно</label>
+            <textarea id="gOut" rows="3" readonly></textarea>
+            <div class="row" style="margin-top:8px">
+              <button id="copyG">Скопировать</button>
+              <button id="saveG">Сохранить файлом</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details>
+      <summary>Соединение не устанавливается — добавить TURN-сервер</summary>
+      <div class="body">
+        <p class="hint" style="margin:0">Примерно у одной пары из десяти прямая связь не проходит из-за строгого NAT — чаще всего у мобильных операторов. Тогда нужен ретранслятор.</p>
+        <div><label for="turnUrl">Адрес</label><input type="text" id="turnUrl" placeholder="turn:example.com:3478" autocomplete="off"></div>
+        <div class="row">
+          <div class="grow"><label for="turnUser">Логин</label><input type="text" id="turnUser" autocomplete="off"></div>
+          <div class="grow"><label for="turnPass">Пароль</label><input type="text" id="turnPass" autocomplete="off"></div>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- зал -->
+  <section id="hall" class="hall hidden">
+    <div>
+      <div class="screen">
+        <video id="video" playsinline autoplay></video>
+        <div class="overlay hidden" id="soundGate">
+          <button class="primary" id="unmute">Включить звук</button>
+          <p>Браузер не пускает звук без нажатия. Одно касание — и всё.</p>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="toggle" id="micBtn" aria-pressed="false">Микрофон выключен</button>
+        <button id="fsBtn">Во весь экран</button>
+        <button id="lightsBtn">Погасить свет</button>
+        <span class="stat" id="stat">—</span>
+      </div>
+    </div>
+    <div class="chat">
+      <div class="chat-head"><p class="eyebrow" style="margin:0">чат</p></div>
+      <div class="log" id="log"></div>
+      <form class="chat-form" id="chatForm">
+        <input type="text" id="chatIn" placeholder="Написать…" maxlength="500" autocomplete="off">
+        <button class="primary" type="submit">→</button>
+      </form>
+    </div>
+  </section>
+</div>
+
+<audio id="voice" autoplay></audio>
+<script src="https://unpkg.com/mqtt@5.3.4/dist/mqtt.min.js"></script>
+<script>
+(() => {
+"use strict";
+const $ = id => document.getElementById(id);
+const enc = new TextEncoder(), dec = new TextDecoder();
+
+let role=null, pc=null, dc=null, screenStream=null, micTrack=null, micTx=null, videoTx=null;
+let remote=new MediaStream(), statTimer=null, broker=null, roomTopic=null, roomKey=null, wakeLock=null;
+const IS_TOUCH = matchMedia("(pointer: coarse)").matches;
+const BROKERS = ["wss://broker.emqx.io:8084/mqtt","wss://test.mosquitto.org:8081/mqtt"];
+
+/* ---------- код зала ---------- */
+const ALPHA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function newCode(){
+  const r = crypto.getRandomValues(new Uint8Array(6));
+  const s = [...r].map(b => ALPHA[b % ALPHA.length]).join("");
+  return s.slice(0,3) + "-" + s.slice(3);
+}
+const normCode = s => s.toUpperCase().replace(/[^A-Z0-9]/g,"");
+
+async function sha(label, code){
+  return new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(label + "|" + code)));
+}
+async function roomFor(code){
+  const h = await sha("kinozal-room", code);
+  return [...h.slice(0,8)].map(b => b.toString(16).padStart(2,"0")).join("");
+}
+async function keyFor(code){
+  const h = await sha("kinozal-key", code);
+  return crypto.subtle.importKey("raw", h, "AES-GCM", false, ["encrypt","decrypt"]);
+}
+async function seal(obj){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv}, roomKey, enc.encode(JSON.stringify(obj))));
+  const out = new Uint8Array(12 + ct.length); out.set(iv); out.set(ct, 12);
+  return out;
+}
+async function unseal(buf){
+  const u8 = new Uint8Array(buf);
+  const pt = await crypto.subtle.decrypt({name:"AES-GCM", iv:u8.slice(0,12)}, roomKey, u8.slice(12));
+  return JSON.parse(dec.decode(pt));
+}
+
+/* ---------- упаковка для ручного режима ---------- */
+const b64 = u8 => {
+  let s = "", c = 0x8000;
+  for (let i = 0; i < u8.length; i += c) s += String.fromCharCode.apply(null, u8.subarray(i, i+c));
+  return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+};
+const unb64 = s => {
+  s = s.replace(/-/g,"+").replace(/_/g,"/");
+  const bin = atob(s), u8 = new Uint8Array(bin.length);
+  for (let i=0;i<bin.length;i++) u8[i] = bin.charCodeAt(i);
+  return u8;
+};
+async function pack(obj){
+  const data = enc.encode(JSON.stringify(obj));
+  if (typeof CompressionStream === "undefined") return "r" + b64(data);
+  try{
+    const cs = new CompressionStream("deflate-raw");
+    const w = cs.writable.getWriter(); w.write(data); w.close();
+    return "z" + b64(new Uint8Array(await new Response(cs.readable).arrayBuffer()));
+  }catch{ return "r" + b64(data); }
+}
+async function unpack(code){
+  const tag = code[0], body = unb64(code.slice(1));
+  if (tag === "r") return JSON.parse(dec.decode(body));
+  const ds = new DecompressionStream("deflate-raw");
+  const w = ds.writable.getWriter(); w.write(body); w.close();
+  return JSON.parse(dec.decode(await new Response(ds.readable).arrayBuffer()));
+}
+async function readCode(raw, expect){
+  const s = String(raw).replace(/\s+/g,"");
+  if (!s) throw new Error("Поле пустое.");
+  if (!/^[zr][A-Za-z0-9_-]+$/.test(s)) throw new Error("Это не похоже на код — скопируйте его целиком, вместе с самым первым символом.");
+  if (s.length < 300) throw new Error("Код обрезан, пришла только часть. Передайте его файлом — мессенджеры режут длинные сообщения.");
+  let obj;
+  try { obj = await unpack(s); }
+  catch { throw new Error("Код повреждён при пересылке. Передайте его файлом, а не текстом."); }
+  if (obj.type !== expect)
+    throw new Error(expect === "answer"
+      ? "Это ваш собственный код приглашения. Нужен ответный код — тот, что пришёл от второго зрителя."
+      : "Это ответный код. Нужен код приглашения — тот, что создаётся первым.");
+  return obj;
+}
+
+/* ---------- интерфейс ---------- */
+function lamp(s, t){ $("lamp").dataset.s = s; $("lampText").textContent = t; }
+function fail(t){ $("err").textContent = t; }
+function sys(t){
+  const el = document.createElement("div");
+  el.className = "msg sys"; el.textContent = t;
+  $("log").appendChild(el); $("log").scrollTop = $("log").scrollHeight;
+}
+
+/* ---------- WebRTC ---------- */
+function iceConfig(){
+  const servers = [{urls:["stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302"]}];
+  const u = $("turnUrl").value.trim();
+  if (u) servers.push({urls:u, username:$("turnUser").value, credential:$("turnPass").value});
+  return {iceServers:servers, bundlePolicy:"max-bundle"};
+}
+function boostOpus(sdp){
+  return sdp.replace(/^a=fmtp:(\d+) ((?=.*minptime=)(?!.*stereo=).*)$/gm,
+    (_, pt, rest) => `a=fmtp:${pt} ${rest};stereo=1;sprop-stereo=1;maxaveragebitrate=256000`);
+}
+function waitIce(p){
+  return new Promise(res => {
+    if (p.iceGatheringState === "complete") return res();
+    const done = () => { clearTimeout(t); p.removeEventListener("icegatheringstatechange", chk); res(); };
+    const chk = () => { if (p.iceGatheringState === "complete") done(); };
+    const t = setTimeout(done, 5000);
+    p.addEventListener("icegatheringstatechange", chk);
+  });
+}
+function newPeer(){
+  const p = new RTCPeerConnection(iceConfig());
+  p.ontrack = e => {
+    remote.addTrack(e.track);
+    if (role === "guest") $("video").srcObject = remote;
+    else $("voice").srcObject = remote;
+  };
+  p.onconnectionstatechange = () => {
+    const s = p.connectionState;
+    if (s === "connected"){ lamp("live","сеанс идёт"); enterHall(); clearRetained(); }
+    else if (s === "connecting") lamp("wait","соединяемся");
+    else if (s === "failed"){ lamp("dead","связь не установилась");
+      fail("Прямое соединение не прошло. Обновите страницу и попробуйте снова — или подключите TURN-сервер ниже.");
+      sys("Связь оборвалась."); }
+    else if (s === "disconnected") lamp("wait","связь потеряна");
+  };
+  return p;
+}
+function bindChannel(ch){
+  dc = ch;
+  ch.onopen = () => {
+    if (role === "guest") ch.send(JSON.stringify({sys:"hello", touch:IS_TOUCH}));
+  };
+  ch.onmessage = e => {
+    let m; try{ m = JSON.parse(e.data); }catch{ return; }
+    if (m.sys === "hello"){
+      if (role === "host" && m.touch && parseInt($("quality").value,10) > 8){
+        $("quality").value = "8"; tuneVideo();
+        sys("Зритель на телефоне — снизил поток до 8 Мбит/с.");
+      }
+      return;
+    }
+    if (m.sys === "quality"){ sys(m.t); return; }
+    addMsg(m.n, m.t, false);
+  };
+  ch.onclose = () => sys("Собеседник отключился.");
+}
+async function tuneVideo(){
+  const sender = pc && pc.getSenders().find(s => s.track && s.track.kind === "video");
+  if (!sender) return;
+  const p = sender.getParameters();
+  if (!p.encodings || !p.encodings.length) p.encodings = [{}];
+  p.encodings[0].maxBitrate = parseInt($("quality").value,10) * 1000000;
+  p.encodings[0].maxFramerate = $("viewer").value === "pc" ? 60 : 30;
+  p.degradationPreference = "maintain-resolution";
+  try{ await sender.setParameters(p); }catch{}
+}
+function preferH264(){
+  if (!videoTx || !videoTx.setCodecPreferences || !window.RTCRtpSender?.getCapabilities) return;
+  const caps = RTCRtpSender.getCapabilities("video");
+  if (!caps) return;
+  const h = caps.codecs.filter(c => /H264/i.test(c.mimeType));
+  if (!h.length) return;
+  try{ videoTx.setCodecPreferences([...h, ...caps.codecs.filter(c => !/H264/i.test(c.mimeType))]); }catch{}
+}
+
+/* ---------- выбор роли ---------- */
+$("beHost").onclick = () => start("host");
+$("beGuest").onclick = () => start("guest");
+function start(r){
+  role = r;
+  $("pick").classList.add("hidden");
+  $("setup").classList.remove("hidden");
+  $("setupTitle").textContent = r === "host" ? "вы за проектором" : "вы в зале";
+  $(r === "host" ? "hostFlow" : "guestFlow").classList.remove("hidden");
+  $(r === "host" ? "manualHost" : "manualGuest").classList.remove("hidden");
+  if (r === "host" && IS_TOUCH){
+    fail("Раздавать экран с телефона браузер не умеет. Включать фильм нужно с компьютера.");
+  }
+  $("nick").focus();
+}
+$("viewer").onchange = () => {
+  const v = $("viewer").value;
+  if (v === "mobile"){ $("quality").value = "3"; $("viewerHint").textContent = "Два часа на 3 Мбит/с — примерно 2,7 ГБ трафика."; }
+  else if (v === "phone"){ $("quality").value = "8"; $("viewerHint").textContent = "Для телефона включу H.264 — его декодирует железо, батарея проживёт дольше."; }
+  else { $("quality").value = "15"; $("viewerHint").textContent = "Полное качество, 60 кадров."; }
+};
+
+/* ---------- брокер ---------- */
+function connectBroker(){
+  return new Promise((resolve, reject) => {
+    if (typeof mqtt === "undefined") return reject(new Error("no-lib"));
+    let i = 0;
+    const tryOne = () => {
+      if (i >= BROKERS.length) return reject(new Error("no-broker"));
+      const c = mqtt.connect(BROKERS[i++], {connectTimeout:7000, reconnectPeriod:0, clean:true});
+      c.on("connect", () => resolve(c));
+      c.on("error", () => { c.end(true); tryOne(); });
+    };
+    tryOne();
+  });
+}
+function clearRetained(){
+  if (broker && roomTopic && role === "host"){
+    try{ broker.publish(roomTopic + "/o", "", {retain:true, qos:1}); }catch{}
+  }
+}
+
+/* ---------- хост ---------- */
+$("startShare").onclick = async () => {
+  fail("");
+  try{
+    screenStream = await navigator.mediaDevices.getDisplayMedia({
+      video:{ frameRate:{ideal:60}, width:{ideal:1920}, height:{ideal:1080} },
+      audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false, sampleRate:48000 }
+    });
+  }catch(e){
+    fail("Доступ к экрану не дан. Если страница открыта по http:// или из файла на телефоне — браузер это запрещает, нужен https.");
+    return;
+  }
+
+  const v = screenStream.getVideoTracks()[0], a = screenStream.getAudioTracks()[0];
+  v.contentHint = "motion";
+  if (a) a.contentHint = "music"; else fail("Звук вкладки не захвачен — нужна была галочка «Открыть доступ к аудио вкладки». Перевыберите вкладку.");
+  v.onended = () => { sys("Трансляция остановлена."); lamp("dead","проектор выключен"); };
+
+  pc = newPeer();
+  bindChannel(pc.createDataChannel("chat", {ordered:true}));
+  videoTx = pc.addTransceiver(v, {direction:"sendonly", streams:[screenStream]});
+  if ($("viewer").value !== "pc") preferH264();
+  if (a) pc.addTransceiver(a, {direction:"sendonly", streams:[screenStream]});
+  else pc.addTransceiver("audio", {direction:"sendonly"});
+  micTx = pc.addTransceiver("audio", {direction:"sendrecv"});
+
+  await tuneVideo();
+  const offer = await pc.createOffer();
+  offer.sdp = boostOpus(offer.sdp);
+  await pc.setLocalDescription(offer);
+  await waitIce(pc);
+
+  $("outCode").value = await pack(pc.localDescription);
+  $("startShare").disabled = true;
+  $("startShare").textContent = "Вкладка выбрана";
+  $("video").srcObject = screenStream; $("video").muted = true;
+  lamp("wait","ждём зрителя");
+
+  const code = newCode();
+  $("roomCode").textContent = code;
+  $("ticketStep").classList.remove("hidden");
+  try{
+    roomKey = await keyFor(normCode(code));
+    roomTopic = "kinozal/" + await roomFor(normCode(code));
+    broker = await connectBroker();
+    broker.subscribe(roomTopic + "/a", {qos:1});
+    broker.on("message", async (t, payload) => {
+      if (!t.endsWith("/a") || !payload || !payload.length || pc.remoteDescription) return;
+      try{
+        const ans = await unseal(payload);
+        await pc.setRemoteDescription(new RTCSessionDescription(ans));
+        await tuneVideo();
+        $("waitText").textContent = "зритель найден";
+      }catch{}
+    });
+    broker.publish(roomTopic + "/o", await seal(pc.localDescription), {retain:true, qos:1});
+  }catch{
+    $("waitText").textContent = "посредник недоступен";
+    fail("Не удалось выйти на посредника — возможно, сеть его блокирует. Откройте ручной режим ниже, он работает без него.");
+    $("manualBlock").open = true;
+  }
+};
+
+/* ---------- гость ---------- */
+$("joinBtn").onclick = async () => {
+  fail("");
+  const code = normCode($("joinCode").value);
+  if (code.length !== 6) return fail("Код состоит из шести знаков, например KRM-742.");
+  $("joinBtn").disabled = true;
+  lamp("wait","ищем зал");
+  try{
+    roomKey = await keyFor(code);
+    roomTopic = "kinozal/" + await roomFor(code);
+    broker = await connectBroker();
+  }catch{
+    $("joinBtn").disabled = false;
+    lamp("dead","посредник недоступен");
+    fail("Не удалось выйти на посредника — возможно, сеть его блокирует. Откройте ручной режим ниже.");
+    $("manualBlock").open = true;
+    return;
+  }
+  const timer = setTimeout(() => {
+    if (!pc) { fail("Зал с таким кодом не отвечает. Проверьте код и то, что второй уже выбрал вкладку."); $("joinBtn").disabled = false; lamp("dead","зал не найден"); }
+  }, 20000);
+
+  broker.subscribe(roomTopic + "/o", {qos:1});
+  broker.on("message", async (t, payload) => {
+    if (!t.endsWith("/o") || !payload || !payload.length || pc) return;
+    clearTimeout(timer);
+    let offer;
+    try{ offer = await unseal(payload); }
+    catch{ fail("Код не подошёл — зал зашифрован другим кодом."); $("joinBtn").disabled = false; return; }
+    await answerTo(offer, ans => broker.publish(roomTopic + "/a", ans, {qos:1}), true);
+  });
+};
+
+async function answerTo(offer, send, sealed){
+  pc = newPeer();
+  pc.ondatachannel = e => bindChannel(e.channel);
+  await pc.setRemoteDescription(new RTCSessionDescription(offer));
+  micTx = pc.getTransceivers().find(t => t.mid === "2") || pc.getTransceivers()[2];
+  if (micTx) micTx.direction = "sendrecv";
+  const answer = await pc.createAnswer();
+  answer.sdp = boostOpus(answer.sdp);
+  await pc.setLocalDescription(answer);
+  await waitIce(pc);
+  send(sealed ? await seal(pc.localDescription) : await pack(pc.localDescription));
+  lamp("wait","соединяемся");
+}
+
+/* ---------- ручной режим ---------- */
+$("connectHost").onclick = async () => {
+  fail("");
+  try{
+    const ans = await readCode($("inCode").value, "answer");
+    await pc.setRemoteDescription(new RTCSessionDescription(ans));
+    await tuneVideo();
+    lamp("wait","соединяемся");
+  }catch(e){ fail(e.message); }
+};
+$("makeAnswer").onclick = async () => {
+  fail("");
+  try{
+    const offer = await readCode($("gIn").value, "offer");
+    await answerTo(offer, code => { $("gOut").value = code; $("gOutWrap").classList.remove("hidden"); }, false);
+    $("makeAnswer").disabled = true;
+  }catch(e){ fail(e.message); }
+};
+function saveText(text, name){
+  const url = URL.createObjectURL(new Blob([text], {type:"text/plain"}));
+  const a = document.createElement("a"); a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+}
+$("saveOut").onclick = () => saveText($("outCode").value, "priglashenie.txt");
+$("saveG").onclick   = () => saveText($("gOut").value, "otvet.txt");
+$("loadInBtn").onclick    = () => $("loadIn").click();
+$("loadOfferBtn").onclick = () => $("loadOffer").click();
+$("loadIn").onchange    = async e => { const f = e.target.files[0]; if (f) $("inCode").value = await f.text(); };
+$("loadOffer").onchange = async e => { const f = e.target.files[0]; if (f) $("gIn").value = await f.text(); };
+
+function copyFrom(id){
+  const el = $(id), text = el.value !== undefined ? el.value : el.textContent;
+  navigator.clipboard.writeText(text).catch(() => { el.select?.(); document.execCommand("copy"); });
+}
+$("copyCode").onclick = () => copyFrom("roomCode");
+$("copyOut").onclick  = () => copyFrom("outCode");
+$("copyG").onclick    = () => copyFrom("gOut");
+
+/* ---------- зал ---------- */
+async function keepAwake(){
+  try{ wakeLock = await navigator.wakeLock?.request("screen"); }catch{}
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && !$("hall").classList.contains("hidden")) keepAwake();
+});
+function enterHall(){
+  if (!$("hall").classList.contains("hidden")) return;
+  $("setup").classList.add("hidden");
+  $("hall").classList.remove("hidden");
+  const v = $("video");
+  if (role === "guest"){ v.srcObject = remote; v.muted = false; }
+  v.play().catch(() => { if (role === "guest") $("soundGate").classList.remove("hidden"); });
+  sys("Зал открыт. Приятного просмотра.");
+  keepAwake(); startStats();
+}
+$("unmute").onclick = () => {
+  const v = $("video"); v.muted = false;
+  v.play().finally(() => $("soundGate").classList.add("hidden"));
+};
+$("micBtn").onclick = async () => {
+  const on = $("micBtn").getAttribute("aria-pressed") === "true";
+  if (on){
+    micTrack?.stop(); micTrack = null;
+    await micTx?.sender.replaceTrack(null);
+    $("micBtn").setAttribute("aria-pressed","false");
+    $("micBtn").textContent = "Микрофон выключен";
+  }else{
+    try{
+      const s = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:true}});
+      micTrack = s.getAudioTracks()[0]; micTrack.contentHint = "speech";
+      await micTx?.sender.replaceTrack(micTrack);
+      $("micBtn").setAttribute("aria-pressed","true");
+      $("micBtn").textContent = "Микрофон включён";
+    }catch{ sys("Микрофон недоступен. На телефоне он работает только по https."); }
+  }
+};
+$("fsBtn").onclick = () => {
+  const el = role === "guest" ? $("video") : document.querySelector(".screen");
+  if (document.fullscreenElement) document.exitFullscreen();
+  else if (el.requestFullscreen) el.requestFullscreen();
+  else if (el.webkitEnterFullscreen) el.webkitEnterFullscreen();
+};
+$("lightsBtn").onclick = () => {
+  const on = document.body.classList.toggle("dark-room");
+  $("lightsBtn").textContent = on ? "Зажечь свет" : "Погасить свет";
+};
+
+/* ---------- чат ---------- */
+const nick = () => ($("nick").value.trim() || (role === "host" ? "Проектор" : "Зритель")).slice(0,20);
+function addMsg(who, text, mine){
+  const el = document.createElement("div");
+  el.className = "msg" + (mine ? " mine" : "");
+  const w = document.createElement("span"); w.className = "who"; w.textContent = who;
+  const t = document.createElement("span"); t.textContent = text;
+  el.append(w, t);
+  $("log").appendChild(el); $("log").scrollTop = $("log").scrollHeight;
+}
+$("chatForm").onsubmit = e => {
+  e.preventDefault();
+  const text = $("chatIn").value.trim();
+  if (!text || !dc || dc.readyState !== "open") return;
+  dc.send(JSON.stringify({n:nick(), t:text}));
+  addMsg("вы", text, true);
+  $("chatIn").value = "";
+};
+
+/* ---------- статистика ---------- */
+function startStats(){
+  if (statTimer) return;
+  let pb = 0, pt = 0;
+  statTimer = setInterval(async () => {
+    if (!pc) return;
+    let bytes = 0, ts = 0, fps = 0, res = "";
+    (await pc.getStats()).forEach(r => {
+      if ((r.type === "outbound-rtp" || r.type === "inbound-rtp") && r.kind === "video"){
+        bytes = r.bytesSent ?? r.bytesReceived ?? 0; ts = r.timestamp;
+        fps = r.framesPerSecond || 0;
+        res = r.frameWidth ? r.frameWidth + "×" + r.frameHeight : "";
+      }
+    });
+    if (pt && ts > pt){
+      const mbps = ((bytes - pb) * 8) / ((ts - pt) / 1000) / 1e6;
+      $("stat").textContent = [res, fps ? Math.round(fps) + " к/с" : "", mbps.toFixed(1) + " Мбит/с"].filter(Boolean).join("  ·  ");
+    }
+    pb = bytes; pt = ts;
+  }, 2000);
+}
+
+window.addEventListener("beforeunload", () => {
+  clearRetained();
+  pc?.close();
+  screenStream?.getTracks().forEach(t => t.stop());
+});
+})();
+</script>
+</body>
+</html>
