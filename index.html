@@ -247,6 +247,7 @@
 
     <div class="diag hidden" id="diag">
       <div>сервер кодов · <span id="dBroker" class="wt">—</span></div>
+      <div>ретранслятор · <span id="dRelay" class="wt">—</span></div>
       <div>мои адреса · <span id="dLocal" class="wt">собираются</span></div>
       <div>адреса друга · <span id="dRemote" class="wt">ждём</span></div>
       <div>соединение · <span id="dState" class="wt">—</span></div>
@@ -363,9 +364,35 @@ const localTypes=new Set(), remoteTypes=new Set();
 const IS_TOUCH = matchMedia("(pointer: coarse)").matches;
 const BROKERS = window.KINOZAL_BROKERS || ["wss://broker.emqx.io:8084/mqtt","wss://test.mosquitto.org:8081/mqtt"];
 const STUN = ["stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302","stun:stun.cloudflare.com:3478"];
-/* свой ретранслятор: включается сам, когда напрямую не соединяется */
-const TURN = {urls:["turn:195.226.93.43:3478?transport=udp","turn:195.226.93.43:3478?transport=tcp"],
-              username:"kino", credential:"b7e41c9a05d2f38e61ac"};
+/* ретранслятор Cloudflare: временный пароль выдаёт скрипт по этому адресу, включается сам, когда напрямую не соединяется */
+const RELAY_URL = window.KINOZAL_RELAY !== undefined ? window.KINOZAL_RELAY : "https://old-art-49ea.kaizisal.workers.dev/";
+let relayIce = null, relayJob = null;
+function relayState(s){
+  $("dRelay").textContent = {on:"готов", off:"недоступен", wt:"запрашиваем"}[s];
+  $("dRelay").className = s === "on" ? "ok" : (s === "off" ? "no" : "wt");
+}
+function loadRelay(){
+  if (relayIce || !RELAY_URL) return Promise.resolve();
+  if (relayJob) return relayJob;
+  relayState("wt");
+  relayJob = (async () => {
+    const ac = new AbortController(), t = setTimeout(() => ac.abort(), 7000);
+    try{
+      const r = await fetch(RELAY_URL, {signal:ac.signal, cache:"no-store"});
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      const j = await r.json(), out = [];
+      for (const srv of [].concat(j.iceServers || [])){
+        /* порт 53 браузеры блокируют, такие адреса только тормозят сбор */
+        const urls = [].concat(srv.urls || []).filter(u => /^turns?:/.test(u) && !/:53(\?|$)/.test(u));
+        if (urls.length && srv.username) out.push({urls, username:srv.username, credential:srv.credential});
+      }
+      if (!out.length) throw new Error("пустой ответ");
+      relayIce = out; relayState("on");
+    }catch(e){ console.warn("relay", e); relayState("off"); }
+    finally{ clearTimeout(t); relayJob = null; }
+  })();
+  return relayJob;
+}
 const store = { get(k){ try{ return localStorage.getItem(k); }catch{ return null; } },
                 set(k,v){ try{ localStorage.setItem(k,v); }catch{} } };
 
@@ -460,7 +487,7 @@ function iceConfig(){
   const servers = [{urls:STUN}];
   const u = $("turnUrl").value.trim();
   if (u) servers.push({urls:u.split(/[\s,]+/).filter(Boolean), username:$("turnUser").value, credential:$("turnPass").value});
-  else servers.push(TURN);
+  else if (relayIce) servers.push(...relayIce);
   return {iceServers:servers, bundlePolicy:"max-bundle"};
 }
 /* создаём новый объект, а не правим готовый: sdp в RTCSessionDescription только для чтения */
@@ -667,6 +694,7 @@ $("beGuest").onclick = () => start("guest");
 function start(r, nopush){
   role = r;
   if (!nopush) history.pushState({s:"setup", r}, "");
+  loadRelay();   /* заранее, чтобы не ждать при соединении */
   $("pick").classList.add("hidden");
   $("setup").classList.remove("hidden");
   $("setupTitle").textContent = r === "host" ? "показ фильма" : "вход по коду";
@@ -765,6 +793,7 @@ $("startShare").onclick = async () => {
     if (a) a.contentHint = "music";
     v.onended = () => { sys("Показ остановлен."); say({sys:"stopped"}); lamp("dead","показ остановлен"); };
 
+    await loadRelay();
     pc = newPeer();
     bindChannel(pc.createDataChannel("chat", {ordered:true}));
     videoTx = pc.addTransceiver(v, {direction:"sendonly", streams:[stream]});
@@ -876,6 +905,7 @@ $("joinBtn").onclick = async () => {
 };
 
 async function answerTo(offer, send, sealed){
+  await loadRelay();
   pc = newPeer();
   pc.ondatachannel = e => bindChannel(e.channel);
   await pc.setRemoteDescription(offer);
