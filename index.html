@@ -364,7 +364,7 @@ const IS_TOUCH = matchMedia("(pointer: coarse)").matches;
 const BROKERS = window.KINOZAL_BROKERS || ["wss://broker.emqx.io:8084/mqtt","wss://test.mosquitto.org:8081/mqtt"];
 const STUN = ["stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302","stun:stun.cloudflare.com:3478"];
 /* свой ретранслятор: включается сам, когда напрямую не соединяется */
-const TURN = {urls:["turn:179.253.173.11:3478?transport=udp","turn:179.253.173.11:3478?transport=tcp"],
+const TURN = {urls:["turn:195.226.93.43:3478?transport=udp","turn:195.226.93.43:3478?transport=tcp"],
               username:"kino", credential:"b7e41c9a05d2f38e61ac"};
 const store = { get(k){ try{ return localStorage.getItem(k); }catch{ return null; } },
                 set(k,v){ try{ localStorage.setItem(k,v); }catch{} } };
