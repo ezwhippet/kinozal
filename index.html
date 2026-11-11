@@ -3,237 +3,292 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0B0D12">
-<title>Киноаппаратная — сеанс на двоих</title>
+<meta name="theme-color" content="#0A0614">
+<title>Кинозал</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#0B0D12; --panel:#141821; --panel-2:#1B2029; --line:#262C38;
-    --lamp:#FFB74A; --lamp-dim:rgba(255,183,74,.14);
-    --alarm:#E8574A; --live:#5BD08C; --text:#E6E9EF; --muted:#7C8496; --r:14px;
+    --bg:#0A0614; --violet:#A56BFF; --pink:#FF4FD8; --cyan:#5CE9FF;
+    --glass:rgba(255,255,255,.07); --glass-2:rgba(255,255,255,.12); --edge:rgba(255,255,255,.16);
+    --alarm:#FF5C7A; --live:#4DFFB0; --wait:#FFD166;
+    --text:#F3EEFF; --muted:#A79BC4; --r:22px;
   }
   *{box-sizing:border-box}
-  html,body{height:100%}
-  body{margin:0;background:var(--ink);color:var(--text);
+  html,body{min-height:100%}
+  body{margin:0;background:var(--bg);color:var(--text);
     font-family:"Golos Text",system-ui,sans-serif;font-size:15px;line-height:1.5;
     -webkit-font-smoothing:antialiased;overflow-x:hidden}
-  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
-    background:radial-gradient(1100px 620px at 50% -10%, var(--lamp-dim), transparent 62%);
-    transition:opacity .8s ease}
-  body.dark-room::before{opacity:.2}
-  .wrap{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:20px 16px 40px}
-  header{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:20px}
-  h1{font-family:"Unbounded",sans-serif;font-weight:600;font-size:16px;
-    letter-spacing:.22em;text-transform:uppercase;margin:0}
+
+  /* неоновые пятна под стеклом */
+  .glow{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;transition:opacity .8s ease}
+  .glow i{position:absolute;border-radius:50%;filter:blur(90px);opacity:.55;will-change:transform}
+  .glow i:nth-child(1){width:560px;height:560px;left:-140px;top:-180px;background:var(--violet);animation:drift 22s ease-in-out infinite alternate}
+  .glow i:nth-child(2){width:480px;height:480px;right:-160px;top:18%;background:var(--pink);opacity:.4;animation:drift 28s ease-in-out infinite alternate-reverse}
+  .glow i:nth-child(3){width:520px;height:520px;left:28%;bottom:-260px;background:var(--cyan);opacity:.28;animation:drift 34s ease-in-out infinite alternate}
+  @keyframes drift{to{transform:translate(70px,50px) scale(1.15)}}
+  body.dark-room .glow{opacity:.12}
+
+  .wrap{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:22px 16px 40px}
+  header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:22px}
+  h1{font-family:"Unbounded",sans-serif;font-weight:700;font-size:20px;letter-spacing:.08em;
+    text-transform:uppercase;margin:0;
+    background:linear-gradient(90deg,#fff,var(--violet) 55%,var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 14px rgba(165,107,255,.55))}
   .sub{color:var(--muted);font-size:13px}
-  .lamp{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);
-    margin-left:auto;font-family:"JetBrains Mono",monospace}
+
+  /* стекло */
+  .glass,.card,.role,.chat,.lamp,.modal{
+    background:linear-gradient(135deg,var(--glass-2),rgba(255,255,255,.03));
+    border:1px solid var(--edge);
+    -webkit-backdrop-filter:blur(26px) saturate(170%);backdrop-filter:blur(26px) saturate(170%);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.28), inset 0 -1px 0 rgba(255,255,255,.04), 0 24px 60px -24px rgba(0,0,0,.75)}
+
+  .lamp{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--text);
+    margin-left:auto;font-family:"JetBrains Mono",monospace;padding:7px 14px;border-radius:999px}
   .bulb{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
   .lamp[data-s="live"] .bulb{background:var(--live);box-shadow:0 0 12px var(--live)}
-  .lamp[data-s="wait"] .bulb{background:var(--lamp);box-shadow:0 0 12px var(--lamp);animation:pulse 1.4s infinite}
-  .lamp[data-s="dead"] .bulb{background:var(--alarm);box-shadow:0 0 10px var(--alarm)}
+  .lamp[data-s="wait"] .bulb{background:var(--wait);box-shadow:0 0 12px var(--wait);animation:pulse 1.4s infinite}
+  .lamp[data-s="dead"] .bulb{background:var(--alarm);box-shadow:0 0 12px var(--alarm)}
   @keyframes pulse{50%{opacity:.25}}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+
+  .card{border-radius:var(--r);padding:22px;max-width:720px;margin:0 auto}
   .eyebrow{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;
-    text-transform:uppercase;color:var(--muted);margin:0 0 14px}
-  .roles{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  @media(max-width:720px){.roles{grid-template-columns:1fr}}
-  .role{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
-    padding:24px 20px;text-align:left;cursor:pointer;color:var(--text);font-family:inherit;
-    transition:border-color .18s, transform .18s, background .18s}
-  .role:hover{border-color:var(--lamp);transform:translateY(-2px);background:var(--panel-2)}
-  .role:focus-visible{outline:2px solid var(--lamp);outline-offset:3px}
-  .role h2{font-family:"Unbounded",sans-serif;font-size:15px;font-weight:600;margin:0 0 8px}
-  .role p{margin:0;color:var(--muted);font-size:13.5px}
-  .role .glyph{font-size:22px;display:block;margin-bottom:12px;color:var(--lamp)}
+    text-transform:uppercase;color:#DCC8FF;margin:0 0 16px;text-shadow:0 0 12px rgba(165,107,255,.9)}
+  .roles{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:900px;margin:8vh auto 0}
+  @media(max-width:720px){.roles{grid-template-columns:1fr;margin-top:0}}
+  .role{border-radius:var(--r);padding:28px 24px;text-align:left;cursor:pointer;color:var(--text);font-family:inherit;
+    transition:transform .2s, box-shadow .2s, border-color .2s}
+  .role:hover{transform:translateY(-3px);border-color:rgba(165,107,255,.7);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.3), 0 0 0 1px rgba(165,107,255,.35), 0 0 46px -6px rgba(165,107,255,.55)}
+  .role:nth-child(2):hover{border-color:rgba(255,79,216,.7);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.3), 0 0 0 1px rgba(255,79,216,.35), 0 0 46px -6px rgba(255,79,216,.55)}
+  .role:focus-visible{outline:2px solid var(--violet);outline-offset:3px}
+  .role h2{font-family:"Unbounded",sans-serif;font-size:17px;font-weight:500;margin:0 0 8px}
+  .role p{margin:0;color:var(--muted);font-size:14px}
+  .role .glyph{font-size:26px;display:block;margin-bottom:16px;color:#fff;text-shadow:0 0 10px var(--violet),0 0 26px var(--violet)}
+  .role:nth-child(2) .glyph{text-shadow:0 0 10px var(--pink),0 0 26px var(--pink)}
+
   label{display:block;font-size:12.5px;color:var(--muted);margin:0 0 6px}
-  input[type=text],select,textarea{width:100%;background:var(--ink);border:1px solid var(--line);
-    color:var(--text);border-radius:10px;padding:11px 13px;font-family:inherit;font-size:16px}
+  input[type=text],select,textarea{width:100%;background:rgba(10,6,20,.55);border:1px solid var(--edge);
+    color:var(--text);border-radius:14px;padding:12px 14px;font-family:inherit;font-size:16px;
+    transition:border-color .16s, box-shadow .16s}
+  select{appearance:none;-webkit-appearance:none;padding-right:38px;
+    background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+    background-position:calc(100% - 20px) 55%,calc(100% - 14px) 55%;background-size:6px 6px;background-repeat:no-repeat}
+  select option{background:#160D2B;color:var(--text)}
   textarea{font-family:"JetBrains Mono",monospace;font-size:11.5px;line-height:1.45;
     resize:vertical;word-break:break-all}
-  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--lamp)}
-  button{font-family:inherit;font-size:14px;font-weight:500;border-radius:10px;cursor:pointer;
-    border:1px solid var(--line);background:var(--panel-2);color:var(--text);padding:11px 18px;
-    transition:background .16s,border-color .16s}
-  button:hover:not(:disabled){border-color:var(--lamp)}
-  button:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
+  ::placeholder{color:rgba(167,155,196,.6)}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--violet);
+    box-shadow:0 0 0 3px rgba(165,107,255,.22), 0 0 22px -4px rgba(165,107,255,.6)}
+
+  button{font-family:inherit;font-size:14px;font-weight:500;border-radius:999px;cursor:pointer;
+    border:1px solid var(--edge);background:var(--glass);color:var(--text);padding:11px 20px;
+    -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.22);
+    transition:background .16s,border-color .16s,box-shadow .16s,transform .16s}
+  button:hover:not(:disabled){border-color:rgba(165,107,255,.8);background:var(--glass-2);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.28), 0 0 22px -6px rgba(165,107,255,.8)}
+  button:active:not(:disabled){transform:scale(.97)}
+  button:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
   button:disabled{opacity:.4;cursor:not-allowed}
-  .primary{background:var(--lamp);color:#1A1204;border-color:var(--lamp);font-weight:600}
-  .primary:hover:not(:disabled){background:#FFC66B}
+  .primary{background:linear-gradient(100deg,var(--violet),var(--pink));color:#fff;border-color:rgba(255,255,255,.35);
+    font-weight:600;box-shadow:inset 0 1px 0 rgba(255,255,255,.45), 0 0 26px -4px rgba(200,90,255,.75)}
+  .primary:hover:not(:disabled){background:linear-gradient(100deg,#B584FF,#FF6FE0);border-color:rgba(255,255,255,.6);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.5), 0 0 36px -2px rgba(220,100,255,.95)}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
   .grow{flex:1;min-width:170px}
-  .step{margin-bottom:18px}
+  .step{margin-bottom:20px}
   .step:last-child{margin-bottom:0}
-  .step-n{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--lamp);
-    letter-spacing:.14em;display:block;margin-bottom:8px}
   .hint{color:var(--muted);font-size:12.5px;margin:8px 0 0}
-  .err{color:var(--alarm);font-size:13px;margin:12px 0 0;white-space:pre-wrap}
-  .ticket{border:1px dashed var(--lamp);border-radius:var(--r);padding:22px 18px;text-align:center;
-    background:linear-gradient(180deg, rgba(255,183,74,.06), transparent)}
-  .ticket .code{font-family:"Unbounded",sans-serif;font-weight:600;font-size:clamp(30px,9vw,44px);
-    letter-spacing:.14em;color:var(--lamp);margin:6px 0 4px;user-select:all}
+  .err{color:var(--alarm);font-size:13px;margin:12px 0 0;white-space:pre-wrap;text-shadow:0 0 14px rgba(255,92,122,.4)}
+  .err:empty{display:none}
+
+  .ticket{border:1px solid rgba(165,107,255,.55);border-radius:var(--r);padding:24px 18px;text-align:center;
+    background:radial-gradient(120% 140% at 50% 0%, rgba(165,107,255,.22), rgba(255,79,216,.06) 60%, transparent);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.25), 0 0 44px -10px rgba(165,107,255,.7)}
+  .ticket .code{font-family:"Unbounded",sans-serif;font-weight:700;font-size:clamp(30px,9vw,46px);
+    letter-spacing:.14em;color:#fff;margin:6px 0 4px;user-select:all;
+    text-shadow:0 0 10px var(--violet),0 0 28px var(--violet),0 0 60px var(--pink)}
   .ticket .cap{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;
     text-transform:uppercase;color:var(--muted)}
-  .diag{margin-top:16px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;
+
+  .diag{margin-top:18px;border:1px solid var(--edge);border-radius:14px;padding:12px 14px;background:rgba(10,6,20,.4);
     font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--muted);line-height:1.9}
-  .diag .ok{color:var(--live)} .diag .no{color:var(--alarm)} .diag .wt{color:var(--lamp)}
-  .hall{display:grid;grid-template-columns:1fr 330px;gap:16px;align-items:start}
+  .diag .ok{color:var(--live)} .diag .no{color:var(--alarm)} .diag .wt{color:var(--wait)}
+
+  .hall{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
   @media(max-width:960px){.hall{grid-template-columns:1fr;gap:12px}}
-  .screen{position:relative;background:#000;border:1px solid var(--line);
-    border-radius:var(--r);overflow:hidden;aspect-ratio:16/9}
+  .screen{position:relative;background:#000;border:1px solid rgba(165,107,255,.5);
+    border-radius:var(--r);overflow:hidden;aspect-ratio:16/9;
+    box-shadow:0 0 0 1px rgba(165,107,255,.18), 0 0 70px -12px rgba(165,107,255,.65), 0 0 140px -30px rgba(255,79,216,.45);
+    transition:box-shadow .8s ease}
+  body.dark-room .screen{box-shadow:0 0 0 1px rgba(165,107,255,.1), 0 0 40px -20px rgba(165,107,255,.3)}
   .screen video{width:100%;height:100%;object-fit:contain;display:block;background:#000}
   .overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
-    justify-content:center;gap:14px;background:rgba(11,13,18,.88);text-align:center;padding:24px}
+    justify-content:center;gap:14px;background:rgba(10,6,20,.82);text-align:center;padding:24px;
+    -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
   .overlay p{margin:0;color:var(--muted);font-size:13.5px;max-width:420px}
-  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
-  .toggle[aria-pressed="true"]{background:var(--lamp);color:#1A1204;border-color:var(--lamp)}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;align-items:center}
+  .toggle[aria-pressed="true"]{background:linear-gradient(100deg,var(--violet),var(--pink));color:#fff;
+    border-color:rgba(255,255,255,.4);box-shadow:inset 0 1px 0 rgba(255,255,255,.45), 0 0 24px -4px rgba(200,90,255,.8)}
   .stat{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:11px;
     color:var(--muted);white-space:nowrap}
-  .chat{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
-    display:flex;flex-direction:column;height:min(620px,62vh);min-height:300px}
+  .chat{border-radius:var(--r);display:flex;flex-direction:column;height:min(620px,62vh);min-height:300px;overflow:hidden}
   @media(max-width:960px){.chat{height:46vh;min-height:220px}}
-  .chat-head{padding:12px 16px;border-bottom:1px solid var(--line)}
-  .log{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:11px}
+  .chat-head{padding:14px 18px;border-bottom:1px solid var(--edge)}
+  .log{flex:1;overflow-y:auto;padding:14px 18px;display:flex;flex-direction:column;gap:11px;
+    scrollbar-width:thin;scrollbar-color:rgba(165,107,255,.5) transparent}
   .msg{font-size:14px;overflow-wrap:anywhere}
   .msg .who{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.1em;
-    text-transform:uppercase;color:var(--lamp);display:block;margin-bottom:2px}
-  .msg.mine .who{color:var(--muted)}
-  .msg.sys{color:var(--muted);font-size:12.5px;font-style:italic}
-  .chat-form{display:flex;gap:8px;padding:12px;border-top:1px solid var(--line)}
-  .chat-form input{flex:1}
-  details{border-top:1px solid var(--line);margin-top:18px;padding-top:14px}
+    text-transform:uppercase;color:var(--pink);display:block;margin-bottom:2px}
+  .msg.mine .who{color:var(--violet)}
+  .msg.sys{color:var(--muted);font-size:12.5px}
+  .chat-form{display:flex;gap:8px;padding:12px;border-top:1px solid var(--edge)}
+  .chat-form input{flex:1;min-width:0;border-radius:999px}
+  .chat-form button{padding:11px 16px}
+
+  details{border-top:1px solid var(--edge);margin-top:20px;padding-top:14px}
   summary{cursor:pointer;color:var(--muted);font-size:13px;list-style:none}
+  summary:hover{color:var(--text)}
   summary::-webkit-details-marker{display:none}
-  summary::before{content:"+ ";color:var(--lamp)}
+  summary::before{content:"+ ";color:var(--violet)}
   details[open] summary::before{content:"− "}
   details .body{margin-top:14px;display:grid;gap:12px}
-  .note{border-left:2px solid var(--lamp);padding:2px 0 2px 12px;color:var(--muted);
-    font-size:13px;margin:16px 0 0}
+  .note{color:var(--muted);font-size:13px;margin:22px auto 0;max-width:900px;text-align:center}
+
+  .veil{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:20px;
+    background:rgba(6,3,14,.6);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+  .modal{border-radius:var(--r);padding:24px;max-width:380px;width:100%;text-align:center}
+  .modal h3{font-family:"Unbounded",sans-serif;font-weight:500;font-size:17px;margin:0 0 8px}
+  .modal p{margin:0 0 18px;color:var(--muted);font-size:14px}
+  .modal .row{justify-content:center}
+
   .hidden{display:none !important}
   @media(prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
 </style>
 </head>
 <body>
+<div class="glow" aria-hidden="true"><i></i><i></i><i></i></div>
 <div class="wrap">
   <header>
-    <h1>Киноаппаратная</h1>
-    <span class="sub">сеанс на двоих · сборка 4</span>
-    <span class="lamp" id="lamp" data-s="off"><span class="bulb"></span><span id="lampText">лампа погашена</span></span>
+    <h1>Кинозал</h1>
+    <span class="sub">кино вдвоём</span>
+    <span class="lamp" id="lamp" data-s="off"><span class="bulb"></span><span id="lampText">не подключено</span></span>
   </header>
 
   <section id="pick">
     <div class="roles">
       <button class="role" id="beHost">
-        <span class="glyph">▶</span><h2>Я включаю фильм</h2>
-        <p>Делитесь вкладкой со звуком. Получите код зала — продиктуете его второму зрителю.</p>
+        <span class="glyph">▶</span><h2>Показать фильм</h2>
+        <p>Откройте фильм во вкладке, поделитесь ей и отправьте другу код.</p>
       </button>
       <button class="role" id="beGuest">
-        <span class="glyph">◉</span><h2>Я смотрю</h2>
-        <p>Вводите код зала — и всё. Работает и с телефона.</p>
+        <span class="glyph">◉</span><h2>Войти по коду</h2>
+        <p>Введите код от друга и смотрите. С телефона тоже работает.</p>
       </button>
     </div>
-    <p class="note">Видео идёт напрямую между двумя устройствами. Через посредника проходит только зашифрованное рукопожатие.</p>
+    <p class="note">Видео идёт напрямую между вами, без сервера.</p>
   </section>
 
   <section id="setup" class="card hidden">
-    <p class="eyebrow" id="setupTitle">подготовка</p>
+    <p class="eyebrow" id="setupTitle">настройка</p>
 
     <div class="step">
-      <label for="nick">Как вас подписывать в чате</label>
+      <label for="nick">Имя в чате</label>
       <input type="text" id="nick" maxlength="20" placeholder="Имя" autocomplete="off">
     </div>
 
     <div id="hostFlow" class="hidden">
       <div class="step">
-        <label for="viewer">Второй зритель смотрит с</label>
+        <label for="viewer">С чего смотрит друг</label>
         <select id="viewer">
-          <option value="pc">компьютера или телевизора</option>
-          <option value="phone">телефона по Wi-Fi</option>
-          <option value="mobile">телефона по мобильному интернету</option>
+          <option value="pc">компьютер или телевизор</option>
+          <option value="phone">телефон, Wi-Fi</option>
+          <option value="mobile">телефон, мобильный интернет</option>
         </select>
-        <p class="hint" id="viewerHint">Дальше подберём кодек и битрейт под это.</p>
+        <p class="hint" id="viewerHint">От этого зависят кодек и битрейт.</p>
       </div>
       <div class="step">
-        <label for="quality">Качество потока</label>
+        <label for="quality">Качество</label>
         <select id="quality">
-          <option value="3">3 Мбит/с — экономно</option>
-          <option value="8">8 Мбит/с — надёжно</option>
-          <option value="15" selected>15 Мбит/с — как Blu-ray</option>
-          <option value="25">25 Мбит/с — максимум</option>
+          <option value="3">3 Мбит/с, экономно</option>
+          <option value="8">8 Мбит/с, нормально</option>
+          <option value="15" selected>15 Мбит/с, хорошо</option>
+          <option value="25">25 Мбит/с, максимум</option>
         </select>
       </div>
       <div class="step">
-        <span class="step-n">ШАГ 1</span>
-        <button class="primary" id="startShare">Выбрать вкладку с фильмом</button>
-        <p class="hint">Переключитесь на <b>«Вкладка Chrome»</b>, выберите вкладку с фильмом и включите галочку <b>«Открыть доступ к аудио вкладки»</b>.</p>
+        <button class="primary" id="startShare">Выбрать вкладку</button>
+        <p class="hint">В окне браузера откройте «Вкладка Chrome», выберите вкладку с фильмом и включите «Открыть доступ к аудио вкладки». Без этого не будет звука.</p>
       </div>
       <div class="step hidden" id="ticketStep">
-        <span class="step-n">ШАГ 2</span>
         <div class="ticket">
-          <div class="cap">код зала</div>
+          <div class="cap">код</div>
           <div class="code" id="roomCode">···</div>
-          <div class="cap" id="waitText">готовим зал</div>
+          <div class="cap" id="waitText">создаём</div>
         </div>
-        <div class="row" style="margin-top:12px"><button id="copyCode">Скопировать код</button></div>
+        <div class="row" style="margin-top:12px"><button id="copyCode">Копировать код</button><button id="copyLink">Копировать ссылку</button></div>
+        <p class="hint">По ссылке код вводить не нужно.</p>
       </div>
     </div>
 
     <div id="guestFlow" class="hidden">
       <div class="step">
-        <label for="joinCode">Код зала</label>
+        <label for="joinCode">Код</label>
         <input type="text" id="joinCode" placeholder="XXX-XXX" autocomplete="off"
                autocapitalize="characters" spellcheck="false"
                style="font-family:'Unbounded',sans-serif;font-size:24px;letter-spacing:.12em;text-align:center">
-        <div class="row" style="margin-top:12px"><button class="primary" id="joinBtn">Войти в зал</button></div>
+        <div class="row" style="margin-top:12px"><button class="primary" id="joinBtn">Войти</button></div>
       </div>
     </div>
 
     <div class="diag hidden" id="diag">
-      <div>посредник · <span id="dBroker" class="wt">—</span></div>
-      <div>мои пути · <span id="dLocal" class="wt">собираются</span></div>
-      <div>пути собеседника · <span id="dRemote" class="wt">ждём</span></div>
+      <div>сервер кодов · <span id="dBroker" class="wt">—</span></div>
+      <div>мои адреса · <span id="dLocal" class="wt">собираются</span></div>
+      <div>адреса друга · <span id="dRemote" class="wt">ждём</span></div>
       <div>соединение · <span id="dState" class="wt">—</span></div>
-      <div id="dPairWrap" class="hidden">канал · <span id="dPair" class="ok">—</span></div>
+      <div id="dPairWrap" class="hidden">маршрут · <span id="dPair" class="ok">—</span></div>
     </div>
 
     <p class="err" id="err"></p>
     <div class="row hidden" id="retryRow" style="margin-top:12px">
-      <button id="retryBtn">Начать заново</button>
+      <button id="retryBtn">Заново</button>
     </div>
 
     <details id="manualBlock">
-      <summary>Ручной режим — если код зала не срабатывает</summary>
+      <summary>Без кода, вручную</summary>
       <div class="body">
-        <p class="hint" style="margin:0">Обмен длинными кодами напрямую, без посредника. Код передавайте файлом — мессенджеры режут длинные сообщения.</p>
+        <p class="hint" style="margin:0">Запасной вариант, если код не работает. Вы обмениваетесь двумя длинными строками. Лучше файлом: мессенджеры обрезают длинные сообщения.</p>
         <div id="manualHost" class="hidden">
-          <label for="outCode">Ваш код приглашения</label>
-          <textarea id="outCode" rows="3" readonly placeholder="появится после выбора вкладки"></textarea>
+          <label for="outCode">Ваша строка, отправьте её другу</label>
+          <textarea id="outCode" rows="3" readonly placeholder="появится, когда выберете вкладку"></textarea>
           <div class="row" style="margin-top:8px">
-            <button id="copyOut">Скопировать</button><button id="saveOut">Сохранить файлом</button>
+            <button id="copyOut">Копировать</button><button id="saveOut">Скачать файлом</button>
           </div>
-          <label for="inCode" style="margin-top:14px">Ответный код от второго зрителя</label>
-          <textarea id="inCode" rows="3" placeholder="Вставьте сюда"></textarea>
+          <label for="inCode" style="margin-top:14px">Строка от друга</label>
+          <textarea id="inCode" rows="3" placeholder="вставьте сюда"></textarea>
           <div class="row" style="margin-top:8px">
-            <button class="primary" id="connectHost">Открыть зал</button>
+            <button class="primary" id="connectHost">Соединить</button>
             <input type="file" id="loadIn" accept=".txt" style="display:none">
-            <button id="loadInBtn">Загрузить из файла</button>
+            <button id="loadInBtn">Из файла</button>
           </div>
         </div>
         <div id="manualGuest" class="hidden">
-          <label for="gIn">Код приглашения</label>
-          <textarea id="gIn" rows="3" placeholder="Вставьте сюда"></textarea>
+          <label for="gIn">Строка от друга</label>
+          <textarea id="gIn" rows="3" placeholder="вставьте сюда"></textarea>
           <div class="row" style="margin-top:8px">
-            <button class="primary" id="makeAnswer">Продолжить</button>
+            <button class="primary" id="makeAnswer">Дальше</button>
             <input type="file" id="loadOffer" accept=".txt" style="display:none">
-            <button id="loadOfferBtn">Загрузить из файла</button>
+            <button id="loadOfferBtn">Из файла</button>
           </div>
           <div id="gOutWrap" class="hidden" style="margin-top:14px">
-            <label for="gOut">Ответный код — отправьте обратно</label>
+            <label for="gOut">Ваша строка, отправьте её обратно</label>
             <textarea id="gOut" rows="3" readonly></textarea>
             <div class="row" style="margin-top:8px">
-              <button id="copyG">Скопировать</button><button id="saveG">Сохранить файлом</button>
+              <button id="copyG">Копировать</button><button id="saveG">Скачать файлом</button>
             </div>
           </div>
         </div>
@@ -241,15 +296,14 @@
     </details>
 
     <details id="turnBlock">
-      <summary>Ретранслятор TURN — когда прямая связь не проходит</summary>
+      <summary>Свой TURN-сервер</summary>
       <div class="body">
-        <p class="hint" style="margin:0">Через TURN пойдёт весь фильм целиком, а не только рукопожатие. Нужен свой coturn на VPS или платный тариф — бесплатных гигабайт на кино не хватит.</p>
+        <p class="hint" style="margin:0">Нужен, если напрямую не соединяется. Через него пойдёт всё видео, так что подойдёт только свой coturn или платный. Заполнить надо обоим, до создания кода.</p>
         <div><label for="turnUrl">Адрес</label><input type="text" id="turnUrl" placeholder="turn:example.com:3478" autocomplete="off"></div>
         <div class="row">
           <div class="grow"><label for="turnUser">Логин</label><input type="text" id="turnUser" autocomplete="off"></div>
           <div class="grow"><label for="turnPass">Пароль</label><input type="text" id="turnPass" autocomplete="off"></div>
         </div>
-        <p class="hint" style="margin:0">Вводить нужно у обоих, до создания зала.</p>
       </div>
     </details>
   </section>
@@ -260,29 +314,39 @@
         <video id="video" playsinline autoplay></video>
         <div class="overlay hidden" id="soundGate">
           <button class="primary" id="unmute">Включить звук</button>
-          <p>Браузер не пускает звук без нажатия. Одно касание — и всё.</p>
+          <p>Браузер не включает звук сам, нужно нажатие.</p>
         </div>
       </div>
       <div class="controls">
         <button class="toggle" id="micBtn" aria-pressed="false">Микрофон выключен</button>
-        <button id="fsBtn">Во весь экран</button>
-        <button id="lightsBtn">Погасить свет</button>
+        <button id="fsBtn">На весь экран</button>
+        <button id="lightsBtn">Выключить свет</button>
         <span class="stat" id="stat">—</span>
       </div>
+      <div class="row hidden" id="hallRetry" style="margin-top:10px"><button id="hallRetryBtn">Заново</button></div>
     </div>
     <div class="chat">
       <div class="chat-head"><p class="eyebrow" style="margin:0">чат</p></div>
       <div class="log" id="log"></div>
       <form class="chat-form" id="chatForm">
-        <input type="text" id="chatIn" placeholder="Написать…" maxlength="500" autocomplete="off">
-        <button class="primary" type="submit">→</button>
+        <input type="text" id="chatIn" placeholder="Сообщение" maxlength="500" autocomplete="off">
+        <button class="primary" type="submit" aria-label="Отправить">→</button>
       </form>
     </div>
   </section>
 </div>
 
+<div class="veil hidden" id="leaveGate">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="leaveTitle">
+    <h3 id="leaveTitle">Выйти?</h3>
+    <p>Просмотр прервётся у обоих.</p>
+    <div class="row"><button class="primary" id="stayBtn">Остаться</button><button id="leaveBtn">Выйти</button></div>
+  </div>
+</div>
+
 <audio id="voice" autoplay></audio>
 <script src="https://unpkg.com/mqtt@5.3.4/dist/mqtt.min.js"></script>
+<script>window.mqtt || document.write('<script src="https://cdn.jsdelivr.net/npm/mqtt@5.3.4/dist/mqtt.min.js"><\/script>');</script>
 <script>
 (() => {
 "use strict";
@@ -290,20 +354,34 @@ const $ = id => document.getElementById(id);
 const enc = new TextEncoder(), dec = new TextDecoder();
 
 let role=null, pc=null, dc=null, screenStream=null, micTrack=null, micTx=null, videoTx=null;
-let remote=new MediaStream(), statTimer=null, broker=null, topic=null, roomKey=null;
-let useBroker=false, wakeLock=null, pubTimer=null, deadline=null;
+let statTimer=null, broker=null, topic=null, roomKey=null, roomCode=null;
+let useBroker=false, wakeLock=null, pubTimer=null, deadline=null, dropTimer=null, restartTimer=null;
+let everConnected=false, restarting=false, peerLeft=false, answering=false, lastOfferUfrag=null;
+const film = new MediaStream(), voiceStream = new MediaStream();
 const myCands=[], seenRemote=new Set(), pending=[];
 const localTypes=new Set(), remoteTypes=new Set();
 const IS_TOUCH = matchMedia("(pointer: coarse)").matches;
-const BROKERS = ["wss://broker.emqx.io:8084/mqtt","wss://test.mosquitto.org:8081/mqtt"];
+const BROKERS = window.KINOZAL_BROKERS || ["wss://broker.emqx.io:8084/mqtt","wss://test.mosquitto.org:8081/mqtt"];
 const STUN = ["stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302","stun:stun.cloudflare.com:3478"];
+const store = { get(k){ try{ return localStorage.getItem(k); }catch{ return null; } },
+                set(k,v){ try{ localStorage.setItem(k,v); }catch{} } };
 
-/* никакая ошибка больше не пропадает молча */
+/* ---------- ошибки ---------- */
+const inHall = () => !$("hall").classList.contains("hidden");
 const lamp = (s,t) => { $("lamp").dataset.s = s; $("lampText").textContent = t; };
-const fail = t => { $("err").textContent = t || ""; if (t) $("retryRow").classList.remove("hidden"); };
+/* в зале блок ошибок спрятан вместе с подготовкой — туда пишем в чат */
+const fail = t => {
+  $("err").textContent = t || "";
+  if (!t) return;
+  $("retryRow").classList.remove("hidden");
+  if (inHall()) sys(t);
+};
 const boom = (where, e) => { console.error(where, e);
-  fail("Сбой на шаге «" + where + "»: " + (e && (e.message || e.name) || e) + "\nПокажите эту строку — по ней видно причину."); };
-window.addEventListener("error", e => boom("общая ошибка", e.error || e.message));
+  fail("Ошибка (" + where + "): " + (e && (e.message || e.name) || e)); };
+window.addEventListener("error", e => {
+  if (/ResizeObserver/.test(e.message || "")) return;
+  boom("общая ошибка", e.error || e.message);
+});
 window.addEventListener("unhandledrejection", e => boom("асинхронная ошибка", e.reason));
 
 /* ---------- код зала ---------- */
@@ -312,7 +390,8 @@ const newCode = () => {
   const s = [...crypto.getRandomValues(new Uint8Array(6))].map(b => ALPHA[b % ALPHA.length]).join("");
   return s.slice(0,3) + "-" + s.slice(3);
 };
-const normCode = s => s.toUpperCase().replace(/[^A-Z0-9]/g,"");
+const normCode = s => String(s).toUpperCase().replace(/[^A-Z0-9]/g,"");
+const prettyCode = n => n.slice(0,3) + (n.length > 3 ? "-" + n.slice(3,6) : "");
 const sha = async (l,c) => new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(l+"|"+c)));
 const roomFor = async c => [...(await sha("kinozal-room",c)).slice(0,8)].map(b=>b.toString(16).padStart(2,"0")).join("");
 const keyFor  = async c => crypto.subtle.importKey("raw", await sha("kinozal-key",c), "AES-GCM", false, ["encrypt","decrypt"]);
@@ -325,6 +404,7 @@ async function unseal(buf){
   const u8 = new Uint8Array(buf);
   return JSON.parse(dec.decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:u8.slice(0,12)}, roomKey, u8.slice(12))));
 }
+const ufragOf = sdp => { const m = /a=ice-ufrag:(\S+)/.exec(sdp || ""); return m ? m[1] : null; };
 
 /* ---------- упаковка (ручной режим) ---------- */
 const b64 = u8 => { let s="",c=0x8000; for(let i=0;i<u8.length;i+=c) s+=String.fromCharCode.apply(null,u8.subarray(i,i+c));
@@ -332,7 +412,7 @@ const b64 = u8 => { let s="",c=0x8000; for(let i=0;i<u8.length;i+=c) s+=String.f
 const unb64 = s => { s=s.replace(/-/g,"+").replace(/_/g,"/"); const b=atob(s),u=new Uint8Array(b.length);
   for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i); return u; };
 async function pack(obj){
-  const d = enc.encode(JSON.stringify(obj));
+  const d = enc.encode(JSON.stringify({type:obj.type, sdp:obj.sdp}));
   if (typeof CompressionStream === "undefined") return "r"+b64(d);
   try{ const cs=new CompressionStream("deflate-raw"); const w=cs.writable.getWriter(); w.write(d); w.close();
     return "z"+b64(new Uint8Array(await new Response(cs.readable).arrayBuffer())); }catch{ return "r"+b64(d); }
@@ -340,36 +420,43 @@ async function pack(obj){
 async function unpack(code){
   const tag=code[0], body=unb64(code.slice(1));
   if (tag==="r") return JSON.parse(dec.decode(body));
+  if (typeof DecompressionStream === "undefined") throw new Error("no inflate");
   const ds=new DecompressionStream("deflate-raw"); const w=ds.writable.getWriter(); w.write(body); w.close();
   return JSON.parse(dec.decode(await new Response(ds.readable).arrayBuffer()));
 }
 async function readCode(raw, expect){
   const s = String(raw).replace(/\s+/g,"");
   if (!s) throw new Error("Поле пустое.");
-  if (!/^[zr][A-Za-z0-9_-]+$/.test(s)) throw new Error("Это не похоже на код — скопируйте целиком, с самого первого символа.");
-  if (s.length < 300) throw new Error("Код обрезан. Передайте его файлом — мессенджеры режут длинные сообщения.");
-  let obj; try{ obj = await unpack(s); }catch{ throw new Error("Код повреждён при пересылке. Передайте файлом."); }
+  if (!/^[zr][A-Za-z0-9_-]+$/.test(s)) throw new Error("Это не та строка. Скопируйте её целиком, с первого символа.");
+  if (s.length < 300) throw new Error("Строка обрезана. Передайте её файлом.");
+  let obj; try{ obj = await unpack(s); }catch{ throw new Error("Строка повреждена. Передайте её файлом."); }
+  if (!obj || typeof obj.sdp !== "string") throw new Error("Строка повреждена. Передайте её файлом.");
   if (obj.type !== expect) throw new Error(expect==="answer"
-    ? "Это ваш собственный код приглашения. Нужен ответный — от второго зрителя."
-    : "Это ответный код. Нужен код приглашения.");
+    ? "Это ваша же строка. Нужна строка от друга."
+    : "Это ответная строка. Нужна первая, от того, кто показывает.");
   return obj;
 }
 
 /* ---------- диагностика ---------- */
-const typeLabel = s => [...s].map(t => ({host:"локальный",srflx:"внешний",prflx:"внешний",relay:"через TURN"}[t]||t)).join(", ") || "нет";
+const typeLabel = s => [...s].map(t => ({host:"локальный",srflx:"внешний",prflx:"внешний",relay:"через TURN"}[t]||t))
+  .filter((x,i,a) => a.indexOf(x) === i).join(", ") || "нет";
 function paintDiag(){
   $("dLocal").textContent  = localTypes.size  ? typeLabel(localTypes)  : "собираются";
   $("dRemote").textContent = remoteTypes.size ? typeLabel(remoteTypes) : "ждём";
   $("dLocal").className  = localTypes.size  ? "ok" : "wt";
   $("dRemote").className = remoteTypes.size ? "ok" : "wt";
 }
-$("retryBtn").onclick = () => location.reload();
+function brokerState(s){
+  const t = {on:"на связи", off:"недоступен", re:"переподключается"}[s];
+  $("dBroker").textContent = t; $("dBroker").className = s === "on" ? "ok" : (s === "off" ? "no" : "wt");
+}
+$("retryBtn").onclick = () => resetAll();
 
 /* ---------- WebRTC ---------- */
 function iceConfig(){
   const servers = [{urls:STUN}];
   const u = $("turnUrl").value.trim();
-  if (u) servers.push({urls:u, username:$("turnUser").value, credential:$("turnPass").value});
+  if (u) servers.push({urls:u.split(/[\s,]+/).filter(Boolean), username:$("turnUser").value, credential:$("turnPass").value});
   return {iceServers:servers, bundlePolicy:"max-bundle"};
 }
 /* создаём новый объект, а не правим готовый: sdp в RTCSessionDescription только для чтения */
@@ -378,6 +465,11 @@ const withStereo = desc => ({
   sdp: desc.sdp.replace(/^a=fmtp:(\d+) ((?=.*minptime=)(?!.*stereo=).*)$/gm,
     (_,pt,rest) => `a=fmtp:${pt} ${rest};stereo=1;sprop-stereo=1;maxaveragebitrate=256000`)
 });
+async function setLocal(raw){
+  let desc; try{ desc = withStereo(raw); }catch{ desc = raw; }
+  try{ await pc.setLocalDescription(desc); }
+  catch{ await pc.setLocalDescription(raw); }   /* если правка SDP не понравилась — идём без неё */
+}
 function waitIce(p){
   return new Promise(res => {
     if (p.iceGatheringState === "complete") return res();
@@ -395,31 +487,47 @@ function publishCands(){
     catch(e){ console.warn("cand publish", e); }
   }, 250);
 }
+async function addCand(c){
+  try{ await pc.addIceCandidate(c); return true; }catch(e){ return false; }
+}
 async function takeCands(list){
+  if (!Array.isArray(list)) return;
   for (const c of list){
-    const k = c.candidate;
+    const k = c && c.candidate;
     if (!k || seenRemote.has(k)) continue;
     seenRemote.add(k);
     const m = /typ (\w+)/.exec(k); if (m) remoteTypes.add(m[1]);
-    if (pc && pc.remoteDescription){ try{ await pc.addIceCandidate(c); }catch(e){ console.warn("addIce", e); } }
-    else pending.push(c);
+    /* кандидат нового поколения (после перезапуска ICE) может прийти раньше описания — отложим, а не потеряем */
+    if (!(pc && pc.remoteDescription && await addCand(c))) pending.push(c);
   }
   paintDiag();
 }
-async function flushPending(){ while (pending.length){ try{ await pc.addIceCandidate(pending.shift()); }catch{} } }
+async function flushPending(){
+  const list = pending.splice(0);
+  for (const c of list) if (!(await addCand(c))) console.warn("addIce dropped", c.candidate);
+}
 
 function newPeer(){
   const p = new RTCPeerConnection(iceConfig());
   p.onicecandidate = e => {
-    if (!e.candidate) return;
+    if (!e.candidate || !e.candidate.candidate) return;
     const m = /typ (\w+)/.exec(e.candidate.candidate);
     if (m){ localTypes.add(m[1]); paintDiag(); }
     myCands.push(e.candidate.toJSON());
     publishCands();
   };
+  /* фильм (видео + звук вкладки) — в <video>, голос собеседника — в отдельный <audio>.
+     Голос — это второй аудио-трансивер: у хоста он единственный входящий. */
   p.ontrack = e => {
-    remote.addTrack(e.track);
-    if (role === "guest") $("video").srcObject = remote; else $("voice").srcObject = remote;
+    const audios = p.getTransceivers().filter(t => t.receiver.track.kind === "audio");
+    const isVoice = e.track.kind === "audio" && (role === "host" || audios.indexOf(e.transceiver) === 1);
+    if (isVoice){
+      voiceStream.addTrack(e.track); $("voice").srcObject = voiceStream;
+      $("voice").play().catch(() => {});
+    } else {
+      film.addTrack(e.track);
+      if (role === "guest") $("video").srcObject = film;
+    }
   };
   p.oniceconnectionstatechange = () => {
     const s = p.iceConnectionState;
@@ -429,110 +537,195 @@ function newPeer(){
   };
   p.onconnectionstatechange = () => {
     const s = p.connectionState;
-    if (s === "connected"){ clearTimeout(deadline); lamp("live","сеанс идёт"); showPair(); enterHall(); clearRetained(); }
+    if (s === "connected"){
+      clearTimeout(deadline); clearTimeout(dropTimer); clearTimeout(restartTimer);
+      if (restarting) sys("Связь восстановлена.");
+      everConnected = true; restarting = false;
+      lamp("live","на связи"); showPair(); enterHall(); clearRetained();
+    }
     else if (s === "connecting") lamp("wait","соединяемся");
-    else if (s === "failed"){ lamp("dead","связь не установилась"); diagnose(); }
-    else if (s === "disconnected") lamp("wait","канал потерян");
+    else if (s === "disconnected"){
+      lamp("wait","связь пропала");
+      /* часто проходит само; если нет — перезапускаем ICE */
+      clearTimeout(dropTimer);
+      if (everConnected) dropTimer = setTimeout(() => { if (p.connectionState !== "connected") recover(); }, 5000);
+    }
+    else if (s === "failed"){
+      lamp("dead","не соединилось");
+      if (everConnected) recover(); else diagnose();
+    }
   };
   return p;
 }
 async function showPair(){
   try{
-    const stats = await pc.getStats(); let pair=null, loc=null, rem=null;
-    stats.forEach(r => { if (r.type==="candidate-pair" && r.state==="succeeded" && r.nominated) pair=r; });
+    const stats = await pc.getStats(); let pair=null, loc=null, rem=null, tid=null;
+    stats.forEach(r => { if (r.type==="transport" && r.selectedCandidatePairId) tid = r.selectedCandidatePairId; });
+    stats.forEach(r => { if (r.type==="candidate-pair" && (tid ? r.id===tid : (r.state==="succeeded" && r.nominated))) pair=r; });
     if (!pair) return;
     stats.forEach(r => { if (r.id===pair.localCandidateId) loc=r; if (r.id===pair.remoteCandidateId) rem=r; });
-    const n = t => ({host:"локальная сеть",srflx:"через интернет",prflx:"через интернет",relay:"через TURN"}[t]||t);
+    const n = t => ({host:"локальная сеть",srflx:"интернет",prflx:"интернет",relay:"TURN"}[t]||t||"?");
     $("dPair").textContent = `${n(loc&&loc.candidateType)} → ${n(rem&&rem.candidateType)}`;
     $("dPairWrap").classList.remove("hidden");
   }catch{}
 }
 function diagnose(){
-  const meBlind = !localTypes.has("srflx") && !localTypes.has("relay");
-  const themBlind = !remoteTypes.has("srflx") && !remoteTypes.has("relay");
-  if (!remoteTypes.size) fail("От второго устройства не пришло ни одного пути — оно не дошло до этого шага. Пусть обновит страницу и войдёт заново.");
-  else if (meBlind) fail("Ваша сеть не пропускает STUN — браузер не смог узнать свой внешний адрес. Попробуйте другую сеть.");
-  else if (themBlind) fail("Сеть второго устройства не пропускает STUN. Пусть переключится с Wi-Fi на мобильный интернет или наоборот.");
-  else fail("Внешние адреса есть у обоих, но канал не открылся — это симметричный NAT, обычно у мобильного оператора. Помогает смена сети на любой из сторон или свой TURN.");
+  const meBlind = !localTypes.has("srflx") && !localTypes.has("prflx") && !localTypes.has("relay");
+  const themBlind = !remoteTypes.has("srflx") && !remoteTypes.has("prflx") && !remoteTypes.has("relay");
+  if (!remoteTypes.size) fail("Друг не прислал свои адреса. Пусть обновит страницу и войдёт снова.");
+  else if (meBlind) fail("Ваша сеть блокирует STUN, внешний адрес узнать не удалось. Попробуйте другую сеть.");
+  else if (themBlind) fail("Сеть друга блокирует STUN. Пусть сменит Wi-Fi на мобильный интернет или наоборот.");
+  else fail("Напрямую соединиться не вышло. Обычно это симметричный NAT у мобильного оператора. Смените сеть у любого из вас или настройте свой TURN.");
 }
 function armDeadline(){
   clearTimeout(deadline);
   deadline = setTimeout(() => { if (!pc || pc.connectionState !== "connected") diagnose(); }, 25000);
 }
+
+/* восстановление после обрыва: перезапуск ICE через посредника. Инициирует только хост — без встречных предложений. */
+async function recover(){
+  if (peerLeft || restarting || !pc || pc.connectionState === "closed") return;
+  if (!useBroker || !broker){
+    sys("Связь пропала. В ручном режиме она не восстанавливается, начните заново.");
+    return;
+  }
+  restarting = true;
+  if (role === "guest"){
+    sys("Связь пропала, переподключаемся…");
+  } else {
+    sys("Связь пропала, переподключаемся…");
+    try{
+      if (pc.signalingState !== "stable") await pc.setLocalDescription({type:"rollback"});
+      await setLocal(await pc.createOffer({iceRestart:true}));
+      broker.publish(topic+"/o", await seal(pc.localDescription), {retain:true, qos:1});
+    }catch(e){ console.warn("ice restart", e); }
+  }
+  clearTimeout(restartTimer);
+  restartTimer = setTimeout(() => {
+    if (pc && pc.connectionState === "connected") return;
+    restarting = false;
+    lamp("dead","связь потеряна");
+    sys("Переподключиться не вышло. Нажмите «Заново» у обоих.");
+    $("hallRetry").classList.remove("hidden");
+    if (role === "host") setTimeout(recover, 15000);
+  }, 30000);
+}
+
 async function tuneVideo(){
   const s = pc && pc.getSenders().find(x => x.track && x.track.kind === "video");
   if (!s) return;
   const p = s.getParameters();
-  if (!p.encodings || !p.encodings.length) p.encodings = [{}];
+  if (!p.encodings || !p.encodings.length) return;   /* до согласования менять нечего — вызовем ещё раз позже */
   p.encodings[0].maxBitrate = parseInt($("quality").value,10) * 1000000;
   p.encodings[0].maxFramerate = $("viewer").value === "pc" ? 60 : 30;
   p.degradationPreference = "maintain-resolution";
-  try{ await s.setParameters(p); }catch(e){ console.warn("bitrate", e); }
+  try{ await s.setParameters(p); }
+  catch(e){ try{ delete p.degradationPreference; await s.setParameters(p); }catch(e2){ console.warn("bitrate", e2); } }
 }
 function preferH264(){
   try{
     if (!videoTx || !videoTx.setCodecPreferences) return;
-    const caps = window.RTCRtpSender && RTCRtpSender.getCapabilities && RTCRtpSender.getCapabilities("video");
-    if (!caps || !caps.codecs) return;
-    const h = caps.codecs.filter(c => /H264/i.test(c.mimeType));
-    if (!h.length) return;
-    videoTx.setCodecPreferences([...h, ...caps.codecs.filter(c => !/H264/i.test(c.mimeType))]);
+    /* Chrome сверяет список с возможностями приёмника — берём их, а не отправителя */
+    for (const side of [window.RTCRtpReceiver, window.RTCRtpSender]){
+      const caps = side && side.getCapabilities && side.getCapabilities("video");
+      if (!caps || !caps.codecs) continue;
+      const h = caps.codecs.filter(c => /H264/i.test(c.mimeType));
+      if (!h.length) return;
+      try{ videoTx.setCodecPreferences([...h, ...caps.codecs.filter(c => !/H264/i.test(c.mimeType))]); return; }
+      catch(e){ console.warn("h264", e); }
+    }
   }catch(e){ console.warn("h264", e); }
 }
+const say = obj => { try{ if (dc && dc.readyState === "open") dc.send(JSON.stringify(obj)); }catch{} };
 function bindChannel(ch){
   dc = ch;
-  ch.onopen = () => { if (role === "guest") ch.send(JSON.stringify({sys:"hello", touch:IS_TOUCH})); };
+  ch.onopen = () => { if (role === "guest") say({sys:"hello", touch:IS_TOUCH}); };
   ch.onmessage = e => {
     let m; try{ m = JSON.parse(e.data); }catch{ return; }
+    if (!m || typeof m !== "object") return;
     if (m.sys === "hello"){
       if (role === "host" && m.touch && parseInt($("quality").value,10) > 8){
-        $("quality").value = "8"; tuneVideo(); sys("Зритель на телефоне — снизил поток до 8 Мбит/с.");
+        $("quality").value = "8"; tuneVideo(); sys("Друг смотрит с телефона, качество снижено до 8 Мбит/с.");
       }
       return;
     }
-    addMsg(m.n, m.t, false);
+    if (m.sys === "bye"){ peerLeft = true; lamp("dead","друг вышел"); sys("Друг закрыл страницу."); return; }
+    if (m.sys === "stopped"){ sys("Показ остановлен."); return; }
+    if (m.sys) return;
+    addMsg(String(m.n || "?").slice(0,20), String(m.t || "").slice(0,500), false);
   };
-  ch.onclose = () => sys("Собеседник отключился.");
+  ch.onclose = () => { if (!peerLeft) sys("Чат отключился."); };
 }
 
 /* ---------- роли ---------- */
 $("beHost").onclick = () => start("host");
 $("beGuest").onclick = () => start("guest");
-function start(r){
+function start(r, nopush){
   role = r;
+  if (!nopush) history.pushState({s:"setup", r}, "");
   $("pick").classList.add("hidden");
   $("setup").classList.remove("hidden");
-  $("setupTitle").textContent = r === "host" ? "вы за проектором" : "вы в зале";
+  $("setupTitle").textContent = r === "host" ? "показ фильма" : "вход по коду";
   $(r === "host" ? "hostFlow" : "guestFlow").classList.remove("hidden");
   $(r === "host" ? "manualHost" : "manualGuest").classList.remove("hidden");
-  if (r === "host" && IS_TOUCH) fail("Раздавать экран с телефона браузер не умеет. Включать фильм нужно с компьютера.");
-  $("nick").focus();
+  if (!window.RTCPeerConnection) fail("Браузер не поддерживает WebRTC. Откройте сайт в Chrome, Edge, Firefox или Safari.");
+  else if (r === "host" && (IS_TOUCH || !(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia))){
+    fail("С этого устройства показывать нельзя. Нужен компьютер с Chrome или Edge.");
+    $("startShare").disabled = true;
+  }
+  const n = store.get("kinozal-nick"); if (n) $("nick").value = n;
+  if (!IS_TOUCH) (r === "guest" && $("joinCode").value ? $("joinBtn") : $("nick")).focus();
 }
+$("nick").onchange = () => store.set("kinozal-nick", $("nick").value.trim());
 $("viewer").onchange = () => {
   const v = $("viewer").value;
-  if (v === "mobile"){ $("quality").value="3"; $("viewerHint").textContent="Два часа на 3 Мбит/с — примерно 2,7 ГБ трафика."; }
-  else if (v === "phone"){ $("quality").value="8"; $("viewerHint").textContent="Для телефона включу H.264 — его декодирует железо, батарея проживёт дольше."; }
-  else { $("quality").value="15"; $("viewerHint").textContent="Полное качество, 60 кадров."; }
+  if (v === "mobile"){ $("quality").value="3"; $("viewerHint").textContent="Два часа на 3 Мбит/с это около 2,7 ГБ."; }
+  else if (v === "phone"){ $("quality").value="8"; $("viewerHint").textContent="Включится H.264, телефон с ним меньше греется."; }
+  else { $("quality").value="15"; $("viewerHint").textContent="Полное качество, 60 кадров в секунду."; }
+  if (pc) tuneVideo();
 };
+$("quality").onchange = () => { if (pc) tuneVideo(); };
 
 /* ---------- брокер ---------- */
 function connectBroker(){
   return new Promise((resolve, reject) => {
-    if (typeof mqtt === "undefined") return reject(new Error("библиотека посредника не загрузилась"));
-    let i = 0;
+    if (typeof mqtt === "undefined") return reject(new Error("библиотека не загрузилась"));
+    let i = 0, settled = false;
     const tryOne = () => {
-      if (i >= BROKERS.length) return reject(new Error("ни один посредник не ответил"));
-      const c = mqtt.connect(BROKERS[i++], {connectTimeout:7000, reconnectPeriod:0, clean:true});
-      c.on("connect", () => resolve(c));
-      c.on("error", () => { try{ c.end(true); }catch{} tryOne(); });
+      if (settled) return;
+      if (i >= BROKERS.length){ settled = true; return reject(new Error("нет ответа")); }
+      let gaveUp = false, c;
+      /* таймаут свой: mqtt.js по истечении connectTimeout шлёт только close, а иногда и его нет */
+      const giveUp = () => { if (gaveUp || settled) return; gaveUp = true; clearTimeout(t);
+        try{ c.end(true); }catch{} tryOne(); };
+      const t = setTimeout(giveUp, 8000);
+      try{ c = mqtt.connect(BROKERS[i++], {connectTimeout:7000, reconnectPeriod:0, clean:true}); }
+      catch{ return giveUp(); }
+      c.on("error", giveUp); c.on("close", giveUp);
+      c.once("connect", () => {
+        if (gaveUp || settled){ try{ c.end(true); }catch{} return; }
+        settled = true; clearTimeout(t);
+        c.options.reconnectPeriod = 4000;           /* дальше — сами переподключаемся, подписки mqtt.js вернёт */
+        c.on("offline", () => brokerState("re"));
+        c.on("connect", () => brokerState("on"));
+        resolve(c);
+      });
     };
     tryOne();
   });
 }
 function clearRetained(){
-  if (broker && topic && role === "host"){
-    try{ broker.publish(topic+"/o","",{retain:true,qos:1}); broker.publish(topic+"/oc","",{retain:true,qos:1}); }catch{}
-  }
+  if (!broker || !topic) return;
+  const subs = role === "host" ? ["/o","/oc"] : ["/ac"];
+  for (const s of subs) try{ broker.publish(topic+s, "", {retain:true, qos:1}); }catch{}
+}
+async function openRoom(code){
+  roomCode = prettyCode(code);
+  roomKey = await keyFor(code);
+  topic = "kinozal/" + await roomFor(code);
+  broker = await connectBroker();
+  useBroker = true;
+  brokerState("on");
 }
 
 /* ---------- хост ---------- */
@@ -541,11 +734,13 @@ $("startShare").onclick = async () => {
   let stream;
   try{
     stream = await navigator.mediaDevices.getDisplayMedia({
-      video:{ frameRate:{ideal:60}, width:{ideal:1920}, height:{ideal:1080} },
-      audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false, sampleRate:48000 }
+      video:{ displaySurface:"browser", frameRate:{ideal:60}, width:{ideal:1920}, height:{ideal:1080} },
+      audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false, sampleRate:48000, channelCount:2,
+              suppressLocalAudioPlayback:false },
+      preferCurrentTab:false, selfBrowserSurface:"exclude", surfaceSwitching:"include", systemAudio:"include"
     });
   }catch(e){
-    if (e && e.name === "NotAllowedError") fail("Доступ к экрану не дан.");
+    if (e && e.name === "NotAllowedError") fail("Вы не выбрали вкладку.");
     else boom("захват экрана", e);
     return;
   }
@@ -557,13 +752,14 @@ $("startShare").onclick = async () => {
   $("ticketStep").classList.remove("hidden");
   $("diag").classList.remove("hidden");
   $("video").srcObject = stream; $("video").muted = true;
-  lamp("wait","готовим зал");
+  $("outCode").placeholder = "готовится, до 10 секунд…";
+  lamp("wait","запускаем");
 
   const v = stream.getVideoTracks()[0], a = stream.getAudioTracks()[0];
   try{
     v.contentHint = "motion";
     if (a) a.contentHint = "music";
-    v.onended = () => { sys("Трансляция остановлена."); lamp("dead","проектор выключен"); };
+    v.onended = () => { sys("Показ остановлен."); say({sys:"stopped"}); lamp("dead","показ остановлен"); };
 
     pc = newPeer();
     bindChannel(pc.createDataChannel("chat", {ordered:true}));
@@ -572,103 +768,118 @@ $("startShare").onclick = async () => {
     if (a) pc.addTransceiver(a, {direction:"sendonly", streams:[stream]});
     else pc.addTransceiver("audio", {direction:"sendonly"});
     micTx = pc.addTransceiver("audio", {direction:"sendrecv"});
-    await tuneVideo();
 
-    const raw = await pc.createOffer();
-    let desc;
-    try{ desc = withStereo(raw); }catch{ desc = raw; }
-    try{ await pc.setLocalDescription(desc); }
-    catch{ await pc.setLocalDescription(raw); }   /* если правка SDP не понравилась — идём без неё */
+    await setLocal(await pc.createOffer());
+    await tuneVideo();
   }catch(e){ boom("подготовка соединения", e); return; }
 
-  waitIce(pc).then(async () => { try{ $("outCode").value = await pack(pc.localDescription); }catch{} });
-  if (!a) fail("Звук вкладки не захвачен — нужна была галочка «Открыть доступ к аудио вкладки». Нажмите «Начать заново» и перевыберите вкладку.");
+  waitIce(pc).then(async () => { try{ $("outCode").value = await pack(pc.localDescription); }catch(e){ console.warn("pack", e); } });
+  if (!a) fail("Звука нет: не включён «Открыть доступ к аудио вкладки». Нажмите «Заново» и выберите вкладку ещё раз.");
 
   const code = newCode();
   $("roomCode").textContent = code;
-  $("waitText").textContent = "ждём второго зрителя";
-  lamp("wait","ждём зрителя");
+  $("waitText").textContent = "ждём друга";
+  lamp("wait","ждём друга");
 
   try{
-    roomKey = await keyFor(normCode(code));
-    topic = "kinozal/" + await roomFor(normCode(code));
-    broker = await connectBroker();
-    useBroker = true;
-    $("dBroker").textContent = "на связи"; $("dBroker").className = "ok";
-    broker.subscribe([topic+"/a", topic+"/ac"], {qos:1});
+    await openRoom(normCode(code));
     broker.on("message", async (t, payload) => {
       if (!payload || !payload.length) return;
       try{
-        if (t.endsWith("/a") && !pc.remoteDescription){
-          await pc.setRemoteDescription(new RTCSessionDescription(await unseal(payload)));
+        if (t.endsWith("/a")){
+          /* ответ принимаем только когда ждём его — и в первый раз, и после перезапуска ICE */
+          if (pc.signalingState !== "have-local-offer") return;
+          const ans = await unseal(payload);
+          if (pc.signalingState !== "have-local-offer") return;
+          await pc.setRemoteDescription(ans);
           await flushPending(); await tuneVideo();
-          $("waitText").textContent = "зритель найден"; armDeadline();
+          if (!everConnected){ $("waitText").textContent = "друг подключается"; armDeadline(); }
         } else if (t.endsWith("/ac")){
           await takeCands(await unseal(payload));
         }
       }catch(e){ console.warn("broker msg", e); }
     });
+    broker.subscribe([topic+"/a", topic+"/ac"], {qos:1});
     broker.publish(topic+"/o", await seal(pc.localDescription), {retain:true, qos:1});
     publishCands();
   }catch(e){
-    $("dBroker").textContent = "недоступен"; $("dBroker").className = "no";
-    $("waitText").textContent = "посредник недоступен";
-    fail("Посредник недоступен (" + (e.message || e) + "). Откройте ручной режим ниже — он работает без него.");
+    brokerState("off");
+    $("waitText").textContent = "сервер недоступен";
+    fail("Сервер кодов недоступен (" + (e.message || e) + "). Соединитесь вручную, блок ниже.");
     $("manualBlock").open = true;
   }
 };
 
 /* ---------- гость ---------- */
+$("joinCode").addEventListener("input", () => {
+  const el = $("joinCode"), n = normCode(el.value).slice(0,6), p = prettyCode(n);
+  if (el.value !== p) el.value = p;
+});
+$("joinCode").addEventListener("keydown", e => { if (e.key === "Enter") $("joinBtn").click(); });
 $("joinBtn").onclick = async () => {
   fail("");
   const code = normCode($("joinCode").value);
-  if (code.length !== 6) return fail("Код состоит из шести знаков, например KRM-742.");
+  if (code.length !== 6) return fail("В коде шесть знаков, например KRM-742.");
+  if (pc) return;
   $("joinBtn").disabled = true;
   $("diag").classList.remove("hidden");
-  lamp("wait","ищем зал");
+  lamp("wait","ищем");
+  /* повторный вход: старое подключение к посреднику закрываем, иначе два обработчика создадут два соединения */
+  if (broker){ try{ broker.end(true); }catch{} broker = null; useBroker = false; }
   try{
-    roomKey = await keyFor(code);
-    topic = "kinozal/" + await roomFor(code);
-    broker = await connectBroker();
-    useBroker = true;
-    $("dBroker").textContent = "на связи"; $("dBroker").className = "ok";
+    await openRoom(code);
   }catch(e){
-    $("joinBtn").disabled = false; lamp("dead","посредник недоступен");
-    $("dBroker").textContent = "недоступен"; $("dBroker").className = "no";
-    fail("Посредник недоступен (" + (e.message || e) + "). Откройте ручной режим ниже.");
+    $("joinBtn").disabled = false; lamp("dead","сервер недоступен");
+    brokerState("off");
+    fail("Сервер кодов недоступен (" + (e.message || e) + "). Соединитесь вручную, блок ниже.");
     $("manualBlock").open = true; return;
   }
+  const me = broker;
   const timer = setTimeout(() => {
-    if (!pc){ fail("Зал с таким кодом не отвечает. Проверьте код и то, что второй уже выбрал вкладку.");
-      $("joinBtn").disabled = false; lamp("dead","зал не найден"); }
+    if (!pc && broker === me){
+      fail("По этому коду никого нет. Проверьте код. Друг уже должен был выбрать вкладку.");
+      $("joinBtn").disabled = false; lamp("dead","код не найден");
+    }
   }, 20000);
 
-  broker.subscribe([topic+"/o", topic+"/oc"], {qos:1});
-  broker.on("message", async (t, payload) => {
-    if (!payload || !payload.length) return;
+  me.on("message", async (t, payload) => {
+    if (broker !== me || !payload || !payload.length) return;
     if (t.endsWith("/oc")){ try{ await takeCands(await unseal(payload)); }catch{} return; }
-    if (!t.endsWith("/o") || pc) return;
-    clearTimeout(timer);
+    if (!t.endsWith("/o")) return;
     let offer;
     try{ offer = await unseal(payload); }
-    catch{ fail("Код не подошёл — зал зашифрован другим кодом."); $("joinBtn").disabled = false; return; }
-    try{
-      await answerTo(offer, async ans => broker.publish(topic+"/a", ans, {qos:1}), true);
-      publishCands(); armDeadline();
-    }catch(e){ boom("вход в зал", e); }
+    catch{ if (!pc){ fail("Код не подошёл."); $("joinBtn").disabled = false; } return; }
+    const uf = ufragOf(offer.sdp);
+    if (!pc && !answering){
+      clearTimeout(timer); answering = true; lastOfferUfrag = uf;
+      try{
+        await answerTo(offer, async ans => me.publish(topic+"/a", ans, {qos:1}), true);
+        publishCands(); armDeadline();
+      }catch(e){ boom("вход в зал", e); }
+    } else if (pc && uf && uf !== lastOfferUfrag && pc.signalingState === "stable"){
+      /* хост перезапустил ICE после обрыва */
+      lastOfferUfrag = uf;
+      try{
+        await pc.setRemoteDescription(offer);
+        await flushPending();
+        await setLocal(await pc.createAnswer());
+        me.publish(topic+"/a", await seal(pc.localDescription), {qos:1});
+        publishCands();
+      }catch(e){ console.warn("ice restart answer", e); }
+    }
   });
+  me.subscribe([topic+"/o", topic+"/oc"], {qos:1});
 };
 
 async function answerTo(offer, send, sealed){
   pc = newPeer();
   pc.ondatachannel = e => bindChannel(e.channel);
-  await pc.setRemoteDescription(new RTCSessionDescription(offer));
+  await pc.setRemoteDescription(offer);
   await flushPending();
-  micTx = pc.getTransceivers().find(t => t.mid === "2") || pc.getTransceivers()[2];
+  /* микрофонный канал — второй аудио-трансивер (первый — звук вкладки) */
+  micTx = pc.getTransceivers().filter(t => t.receiver.track.kind === "audio")[1] || null;
   if (micTx) { try{ micTx.direction = "sendrecv"; }catch{} }
-  const raw = await pc.createAnswer();
-  let desc; try{ desc = withStereo(raw); }catch{ desc = raw; }
-  try{ await pc.setLocalDescription(desc); }catch{ await pc.setLocalDescription(raw); }
+  await setLocal(await pc.createAnswer());
   if (sealed) await send(await seal(pc.localDescription));
   else { await waitIce(pc); await send(await pack(pc.localDescription)); }
   lamp("wait","соединяемся");
@@ -677,74 +888,107 @@ async function answerTo(offer, send, sealed){
 /* ---------- ручной режим ---------- */
 $("connectHost").onclick = async () => {
   fail("");
+  if (!pc) return fail("Сначала выберите вкладку с фильмом.");
+  if (pc.signalingState !== "have-local-offer") return fail("Строка уже принята, соединяемся.");
   try{
-    await pc.setRemoteDescription(new RTCSessionDescription(await readCode($("inCode").value, "answer")));
+    await pc.setRemoteDescription(await readCode($("inCode").value, "answer"));
     await flushPending(); await tuneVideo(); lamp("wait","соединяемся"); armDeadline();
   }catch(e){ fail(e.message || String(e)); }
 };
 $("makeAnswer").onclick = async () => {
   fail("");
+  if (pc) return fail("Соединение уже создаётся. Для другой строки нажмите «Заново».");
   try{
     const offer = await readCode($("gIn").value, "offer");
+    $("makeAnswer").disabled = true;
     await answerTo(offer, c => { $("gOut").value = c; $("gOutWrap").classList.remove("hidden"); }, false);
-    $("makeAnswer").disabled = true; armDeadline();
-  }catch(e){ fail(e.message || String(e)); }
+    armDeadline();
+  }catch(e){ $("makeAnswer").disabled = false; pc = null; fail(e.message || String(e)); }
 };
-function saveText(t,n){ const u=URL.createObjectURL(new Blob([t],{type:"text/plain"}));
-  const a=document.createElement("a"); a.href=u; a.download=n; a.click(); setTimeout(()=>URL.revokeObjectURL(u),3000); }
+function saveText(t,n){
+  if (!t) return fail("Строка ещё не готова, подождите пару секунд.");
+  const u=URL.createObjectURL(new Blob([t],{type:"text/plain"}));
+  const a=document.createElement("a"); a.href=u; a.download=n; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(u),3000);
+}
 $("saveOut").onclick = () => saveText($("outCode").value,"priglashenie.txt");
 $("saveG").onclick   = () => saveText($("gOut").value,"otvet.txt");
 $("loadInBtn").onclick    = () => $("loadIn").click();
 $("loadOfferBtn").onclick = () => $("loadOffer").click();
-$("loadIn").onchange    = async e => { const f=e.target.files[0]; if(f) $("inCode").value = await f.text(); };
-$("loadOffer").onchange = async e => { const f=e.target.files[0]; if(f) $("gIn").value = await f.text(); };
-function copyFrom(id){ const el=$(id), t = el.value !== undefined ? el.value : el.textContent;
-  navigator.clipboard.writeText(t).catch(()=>{ if (el.select) { el.select(); document.execCommand("copy"); } }); }
-$("copyCode").onclick = () => copyFrom("roomCode");
-$("copyOut").onclick  = () => copyFrom("outCode");
-$("copyG").onclick    = () => copyFrom("gOut");
+$("loadIn").onchange    = async e => { const f=e.target.files[0]; if(f) $("inCode").value = await f.text(); e.target.value = ""; };
+$("loadOffer").onchange = async e => { const f=e.target.files[0]; if(f) $("gIn").value = await f.text(); e.target.value = ""; };
+function flash(btn){ const t = btn.textContent; btn.textContent = "Скопировано"; setTimeout(() => btn.textContent = t, 1400); }
+function copyText(t, btn){
+  if (!t) return;
+  const old = () => { const ta=document.createElement("textarea"); ta.value=t; ta.style.position="fixed"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.select(); try{ document.execCommand("copy"); flash(btn); }catch{} ta.remove(); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(() => flash(btn), old);
+  else old();
+}
+const roomLink = () => location.origin + location.pathname + "?room=" + encodeURIComponent(roomCode || "");
+$("copyCode").onclick = e => copyText(roomCode, e.currentTarget);
+$("copyLink").onclick = e => copyText(roomCode && roomLink(), e.currentTarget);
+$("copyOut").onclick  = e => copyText($("outCode").value, e.currentTarget);
+$("copyG").onclick    = e => copyText($("gOut").value, e.currentTarget);
 
 /* ---------- зал ---------- */
-async function keepAwake(){ try{ if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request("screen"); }catch{} }
+async function keepAwake(){
+  try{ if (navigator.wakeLock && (!wakeLock || wakeLock.released)) wakeLock = await navigator.wakeLock.request("screen"); }catch{}
+}
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible" && !$("hall").classList.contains("hidden")) keepAwake();
+  if (document.visibilityState === "visible" && inHall()) keepAwake();
 });
 function enterHall(){
-  if (!$("hall").classList.contains("hidden")) return;
+  if (inHall()) return;
   $("setup").classList.add("hidden"); $("hall").classList.remove("hidden");
+  if (!(history.state && history.state.s === "hall")) history.pushState({s:"hall", r:role}, "");
   const v = $("video");
-  if (role === "guest"){ v.srcObject = remote; v.muted = false; }
+  if (role === "guest"){ v.srcObject = film; v.muted = false; }
   v.play().catch(() => { if (role === "guest") $("soundGate").classList.remove("hidden"); });
-  sys("Зал открыт. Приятного просмотра.");
+  $("voice").play().catch(() => {});
+  sys("Соединились.");
   keepAwake(); startStats();
 }
-$("unmute").onclick = () => { const v=$("video"); v.muted=false; v.play().finally(()=>$("soundGate").classList.add("hidden")); };
+$("unmute").onclick = () => {
+  const v=$("video"); v.muted=false;
+  $("voice").play().catch(() => {});
+  v.play().then(() => $("soundGate").classList.add("hidden"),
+                () => sys("Звук не включился, нажмите на видео."));
+};
 $("micBtn").onclick = async () => {
-  const on = $("micBtn").getAttribute("aria-pressed") === "true";
+  const btn = $("micBtn"), on = btn.getAttribute("aria-pressed") === "true";
+  if (!micTx) return sys("Микрофон не работает: у друга старая версия страницы.");
+  btn.disabled = true;
   try{
     if (on){
-      if (micTrack){ micTrack.stop(); micTrack = null; }
       if (micTx) await micTx.sender.replaceTrack(null);
-      $("micBtn").setAttribute("aria-pressed","false"); $("micBtn").textContent = "Микрофон выключен";
+      if (micTrack){ micTrack.stop(); micTrack = null; }
+      btn.setAttribute("aria-pressed","false"); btn.textContent = "Микрофон выключен";
     }else{
       const s = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
       micTrack = s.getAudioTracks()[0]; micTrack.contentHint = "speech";
-      if (micTx) await micTx.sender.replaceTrack(micTrack);
-      $("micBtn").setAttribute("aria-pressed","true"); $("micBtn").textContent = "Микрофон включён";
+      await micTx.sender.replaceTrack(micTrack);
+      btn.setAttribute("aria-pressed","true"); btn.textContent = "Микрофон включён";
     }
-  }catch{ sys("Микрофон недоступен."); }
+  }catch(e){
+    if (micTrack && !on){ micTrack.stop(); micTrack = null; }
+    sys(e && e.name === "NotAllowedError" ? "Доступ к микрофону не дан." : "Микрофон недоступен.");
+  }finally{ btn.disabled = false; }
 };
 $("fsBtn").onclick = () => {
   const el = role === "guest" ? $("video") : document.querySelector(".screen");
-  if (document.fullscreenElement) document.exitFullscreen();
-  else if (el.requestFullscreen) el.requestFullscreen();
-  else if (el.webkitEnterFullscreen) el.webkitEnterFullscreen();
+  const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+  if (fsEl) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+  else if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  else if ($("video").webkitEnterFullscreen) $("video").webkitEnterFullscreen();
 };
 $("lightsBtn").onclick = () => { const on = document.body.classList.toggle("dark-room");
-  $("lightsBtn").textContent = on ? "Зажечь свет" : "Погасить свет"; };
+  $("lightsBtn").textContent = on ? "Включить свет" : "Выключить свет"; };
+$("hallRetryBtn").onclick = () => resetAll();
 
 /* ---------- чат ---------- */
-const nick = () => ($("nick").value.trim() || (role === "host" ? "Проектор" : "Зритель")).slice(0,20);
+const nick = () => ($("nick").value.trim() || (role === "host" ? "Хост" : "Гость")).slice(0,20);
 function sys(t){ const e=document.createElement("div"); e.className="msg sys"; e.textContent=t;
   $("log").appendChild(e); $("log").scrollTop=$("log").scrollHeight; }
 function addMsg(who, text, mine){
@@ -756,8 +1000,10 @@ function addMsg(who, text, mine){
 $("chatForm").onsubmit = e => {
   e.preventDefault();
   const text = $("chatIn").value.trim();
-  if (!text || !dc || dc.readyState !== "open") return;
-  dc.send(JSON.stringify({n:nick(), t:text})); addMsg("вы", text, true); $("chatIn").value = "";
+  if (!text) return;
+  if (!dc || dc.readyState !== "open") return sys("Не отправлено: нет связи.");
+  try{ dc.send(JSON.stringify({n:nick(), t:text})); }catch{ return sys("Не отправлено."); }
+  addMsg("вы", text, true); $("chatIn").value = "";
 };
 
 /* ---------- статистика ---------- */
@@ -765,25 +1011,71 @@ function startStats(){
   if (statTimer) return;
   let pb=0, pt=0;
   statTimer = setInterval(async () => {
-    if (!pc) return;
+    if (!pc || pc.connectionState === "closed") return;
     let bytes=0, ts=0, fps=0, res="";
-    (await pc.getStats()).forEach(r => {
-      if ((r.type==="outbound-rtp"||r.type==="inbound-rtp") && r.kind==="video"){
-        bytes = r.bytesSent != null ? r.bytesSent : (r.bytesReceived || 0); ts = r.timestamp;
-        fps = r.framesPerSecond || 0; res = r.frameWidth ? r.frameWidth+"×"+r.frameHeight : "";
-      }
-    });
-    if (pt && ts > pt){
+    try{
+      (await pc.getStats()).forEach(r => {
+        if ((r.type==="outbound-rtp"||r.type==="inbound-rtp") && r.kind==="video"){
+          bytes = r.type==="outbound-rtp" ? (r.bytesSent || 0) : (r.bytesReceived || 0); ts = r.timestamp;
+          fps = r.framesPerSecond || 0; res = r.frameWidth ? r.frameWidth+"×"+r.frameHeight : "";
+        }
+      });
+    }catch{ return; }
+    if (pt && ts > pt && bytes >= pb){
       const mbps = ((bytes-pb)*8)/((ts-pt)/1000)/1e6;
       $("stat").textContent = [res, fps?Math.round(fps)+" к/с":"", mbps.toFixed(1)+" Мбит/с"].filter(Boolean).join("  ·  ");
     }
     pb = bytes; pt = ts;
   }, 2000);
 }
-window.addEventListener("beforeunload", () => {
+window.addEventListener("pagehide", () => {
+  say({sys:"bye"});
   clearRetained(); if (pc) pc.close();
   if (screenStream) screenStream.getTracks().forEach(t => t.stop());
 });
+
+/* ---------- кнопка «назад» ----------
+   Экраны лежат в истории браузера: выбор → настройка → просмотр.
+   «Назад» возвращает на прошлый экран, а не уводит с сайта. */
+let leaving = false;
+const dirty = () => !!(pc || broker || screenStream);
+function showPick(){
+  role = null; fail("");
+  for (const id of ["setup","hostFlow","guestFlow","manualHost","manualGuest","retryRow","diag"]) $(id).classList.add("hidden");
+  $("startShare").disabled = false;
+  $("pick").classList.remove("hidden");
+}
+/* полный сброс: возвращаемся к записи экрана выбора и перезагружаемся на ней */
+function resetAll(){
+  leaving = true;
+  const s = history.state && history.state.s;
+  if (s) history.go(s === "hall" ? -2 : -1);
+  setTimeout(() => location.replace(location.pathname), s ? 700 : 0);
+}
+window.addEventListener("popstate", e => {
+  const st = e.state || {};
+  if (leaving){ if (!st.s) location.reload(); else resetAll(); return; }
+  if (inHall()){
+    if (st.s === "hall") $("leaveGate").classList.add("hidden");          /* остались */
+    else if (st.s === "setup") $("leaveGate").classList.remove("hidden"); /* спросим, прежде чем рвать связь */
+    else location.reload();
+    return;
+  }
+  if (!st.s){ if (dirty()) location.reload(); else showPick(); }
+  else if (!role && (st.r === "host" || st.r === "guest")) start(st.r, true);
+});
+$("stayBtn").onclick = () => history.forward();
+$("leaveBtn").onclick = () => resetAll();
+
+/* ---------- старт: ссылка с кодом или обновление страницы на экране настройки ---------- */
+const fromLink = normCode(new URLSearchParams(location.search).get("room") || "");
+const st0 = history.state;
+if (fromLink.length === 6) history.replaceState(st0, "", location.pathname);
+if (st0 && (st0.r === "host" || st0.r === "guest")){
+  if (st0.s === "hall") history.replaceState({s:"setup", r:st0.r}, "");
+  start(st0.r, true);
+  if (fromLink.length === 6 && st0.r === "guest") $("joinCode").value = prettyCode(fromLink);
+} else if (fromLink.length === 6){ $("joinCode").value = prettyCode(fromLink); start("guest"); }
 })();
 </script>
 </body>
