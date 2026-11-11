@@ -296,9 +296,9 @@
     </details>
 
     <details id="turnBlock">
-      <summary>Свой TURN-сервер</summary>
+      <summary>Другой TURN-сервер</summary>
       <div class="body">
-        <p class="hint" style="margin:0">Нужен, если напрямую не соединяется. Через него пойдёт всё видео, так что подойдёт только свой coturn или платный. Заполнить надо обоим, до создания кода.</p>
+        <p class="hint" style="margin:0">Ретранслятор уже встроен, заполнять ничего не нужно. Поля нужны, только если хотите подключить другой сервер. Тогда заполнить надо обоим, до создания кода.</p>
         <div><label for="turnUrl">Адрес</label><input type="text" id="turnUrl" placeholder="turn:example.com:3478" autocomplete="off"></div>
         <div class="row">
           <div class="grow"><label for="turnUser">Логин</label><input type="text" id="turnUser" autocomplete="off"></div>
@@ -363,6 +363,9 @@ const localTypes=new Set(), remoteTypes=new Set();
 const IS_TOUCH = matchMedia("(pointer: coarse)").matches;
 const BROKERS = window.KINOZAL_BROKERS || ["wss://broker.emqx.io:8084/mqtt","wss://test.mosquitto.org:8081/mqtt"];
 const STUN = ["stun:stun.l.google.com:19302","stun:stun1.l.google.com:19302","stun:stun.cloudflare.com:3478"];
+/* свой ретранслятор: включается сам, когда напрямую не соединяется */
+const TURN = {urls:["turn:179.253.173.11:3478?transport=udp","turn:179.253.173.11:3478?transport=tcp"],
+              username:"kino", credential:"b7e41c9a05d2f38e61ac"};
 const store = { get(k){ try{ return localStorage.getItem(k); }catch{ return null; } },
                 set(k,v){ try{ localStorage.setItem(k,v); }catch{} } };
 
@@ -457,6 +460,7 @@ function iceConfig(){
   const servers = [{urls:STUN}];
   const u = $("turnUrl").value.trim();
   if (u) servers.push({urls:u.split(/[\s,]+/).filter(Boolean), username:$("turnUser").value, credential:$("turnPass").value});
+  else servers.push(TURN);
   return {iceServers:servers, bundlePolicy:"max-bundle"};
 }
 /* создаём новый объект, а не правим готовый: sdp в RTCSessionDescription только для чтения */
